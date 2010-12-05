@@ -1,0 +1,31 @@
+Source: ibus-chewing
+Section: utils
+Priority: optional
+Maintainer: IME Packaging Team <pkg-ime-devel@lists.alioth.debian.org>
+Uploaders: LI Daobing <lidaobing@debian.org>, Asias He <asias.hejun@gmail.com>
+Build-Depends: debhelper (>= 7.0.50~), 
+ cmake,
+ gob2 (>= 2.0.17),
+ pkg-config, 
+ libchewing3-dev (>= 0.3.2-2~), 
+ libgconf2-dev,
+ libibus-dev (>= 1.2.99),
+ libgtk2.0-dev,
+ libx11-dev,
+ libxtst-dev,
+ rpm
+Standards-Version: 3.9.1
+Homepage: http://code.google.com/p/ibus
+Vcs-Bzr: lp:~pkg-ime/ibus/debian-ibus-chewing
+Vcs-Browser: https://code.launchpad.net/~pkg-ime/ibus/debian-ibus-chewing
+
+Package: ibus-chewing
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, ibus (>= 1.2.99), 
+ libchewing3 (>= 0.3.2-2~) 
+Description: chewing input engine for IBus
+ IBus is an Intelligent Input Bus. It is a new input framework for Linux
+ OS. It provides full featured and user friendly input method user interface.
+ It also may help developers to develop input method easily.
+ .
+ IBus-chewing is a IM Engine for Traditional Chinese, based on IBus.

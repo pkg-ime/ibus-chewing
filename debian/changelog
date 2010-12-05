@@ -1,0 +1,177 @@
+ibus-chewing (1.3.9.2-1) unstable; urgency=low
+
+  [ Asias He ]
+  * New upstream release.
+  * debian/rules: delete /usr/share/doc/ibus-chewing-*/COPYING.gz
+
+  [ LI Daobing ]
+  * debian/rules: fix doc install place
+  * debian/control: build depends on debhelper >= 7.0.50~ 
+  * debian/docs: updated 
+  * debian/clean: updated
+
+ -- LI Daobing <lidaobing@debian.org>  Sun, 05 Dec 2010 16:25:41 +0800
+
+ibus-chewing (1.3.7.20100910-1) unstable; urgency=low
+
+  [ Asias He ]
+  * New upstream release.
+  * debian/watch: use googlecode.debian.net
+
+  [ LI Daobing ]
+  * debian/rules: fix install path of gconf.
+  * debian/clean: updated. 
+  * debian/control: build depends on rpm. 
+
+ -- LI Daobing <lidaobing@debian.org>  Mon, 13 Sep 2010 23:05:30 +0800
+
+ibus-chewing (1.3.6.20100730-1) unstable; urgency=low
+
+  [ Asias He ]
+  * New upstream release.
+  * debian/docs: removed NEWS.
+  * debian/control: bump standards version to 3.9.1
+
+ -- LI Daobing <lidaobing@debian.org>  Sat, 31 Jul 2010 22:20:38 +0800
+
+ibus-chewing (1.3.5.20100706-1) unstable; urgency=low
+
+  [ Asias He ]
+  * New upstream release.
+  * debian/control: bump standards version to 3.9.0
+
+ -- LI Daobing <lidaobing@debian.org>  Thu, 08 Jul 2010 16:17:52 +0800
+
+ibus-chewing (1.3.4.20100608-1) unstable; urgency=low
+
+  [ Asias He ]
+  * New upstream release.
+
+ -- LI Daobing <lidaobing@debian.org>  Wed, 09 Jun 2010 23:46:47 +0800
+
+ibus-chewing (1.3.4.20100605-1) unstable; urgency=low
+
+  [ Asias He ]
+  * debian/control:
+    - set maintainer to pkg-ime, add LI Daobing <lidaobing@debian.org> 
+      & Asias He <asias.hejun@gmail.com> to uploaders.
+    - update Vcs-* fields.
+  * New upstream release.
+
+  [ LI Daobing ]
+  * debian/control: build depends on gob2 (>= 2.0.17) 
+
+ -- LI Daobing <lidaobing@debian.org>  Mon, 07 Jun 2010 21:25:30 +0800
+
+ibus-chewing (1.2.99.20100317-2) unstable; urgency=low
+
+  * move to unstable.
+
+ -- LI Daobing <lidaobing@debian.org>  Sat, 03 Apr 2010 20:40:30 +0800
+
+ibus-chewing (1.2.99.20100317-1) experimental; urgency=low
+
+  * New upstream release.
+  * debian/control: switch to ibus 1.3 
+  * debian/control: bump standards version to 3.8.4
+
+ -- LI Daobing <lidaobing@debian.org>  Sun, 21 Mar 2010 18:58:05 +0800
+
+ibus-chewing (1.2.0.20091211-1) unstable; urgency=low
+
+  * New upstream release.
+    - debian/patches/binutils-gold.patch: removed.
+
+ -- LI Daobing <lidaobing@debian.org>  Sat, 12 Dec 2009 23:02:33 +0800
+
+ibus-chewing (1.2.0.20091002-1) unstable; urgency=low
+
+  * new upstream release.
+    - fix buffer doesn't get cleared when toggling ibus on/off (LP: #424171)
+    - fix character selection window stays behind when toggling ibus off 
+      (LP: #424176)
+  * convert package to 3.0 (quilt) format.
+  * debian/rules: add --as-needed to ld flags.
+  * debian/control: 
+    - build depends on libchewing3-dev >= 0.3.2-2~
+    - depends on libchewing3 >= 0.3.2-2~
+  * Fix "FTBFS with binutils-gold" (Closes: #554861)
+    - debian/patches/binutils-gold.patch: added.
+
+ -- LI Daobing <lidaobing@debian.org>  Sun, 22 Nov 2009 15:23:27 +0800
+
+ibus-chewing (1.2.0.20090917-1) unstable; urgency=low
+
+  * new upstream release.
+
+ -- LI Daobing <lidaobing@debian.org>  Thu, 17 Sep 2009 19:06:19 +0800
+
+ibus-chewing (1.2.0.20090831-1) unstable; urgency=low
+
+  * new upstream release. 
+  * debian/rules: clean more files. 
+
+ -- LI Daobing <lidaobing@debian.org>  Mon, 31 Aug 2009 19:55:44 +0800
+
+ibus-chewing (1.2.0.20090818-2) unstable; urgency=low
+
+  [ Loïc Minier ]
+  * Bdep on libx11-dev per CMakeLists.txt.
+  * Use $@ where possible in rules to avoid repetitions.
+  * Add .PHONY.
+  * Clean more files with debian/clean but not bin and po/CMakeFiles as these
+    are dirs.
+  * Define -DLIBEXEC_DIR=/usr/lib/ibus-chewing when calling cmake instead of
+    mv-ing and sed-ing files.
+
+  [ LI Daobing ]
+  * debian/control: update Vcs-* fields. 
+
+ -- LI Daobing <lidaobing@debian.org>  Tue, 25 Aug 2009 19:49:24 +0800
+
+ibus-chewing (1.2.0.20090818-1) unstable; urgency=low
+
+  * new upstream release.
+  * debian/control: bump standards version to 3.8.3
+  * debian/clean: remove data/ibus-chewing.schemas 
+
+ -- LI Daobing <lidaobing@debian.org>  Mon, 24 Aug 2009 21:41:36 +0800
+
+ibus-chewing (1.2.0.20090624-1) unstable; urgency=low
+
+  * new upstream release.
+  * debian/control:
+    - build-depends: libibus-dev >= 1.2
+    - depends: ibus >= 1.2
+    - bump standards version to 3.8.2
+  * debian/clean: updated
+  * debian/rules: update clean rule.
+
+ -- LI Daobing <lidaobing@debian.org>  Fri, 26 Jun 2009 23:41:31 +0800
+
+ibus-chewing (1.0.10.20090523-1) unstable; urgency=low
+
+  * new upstream release.
+  * debian/rules: use "dh clean"
+  * debian/clean: added.
+  * debian/copyright: (C) -> ©
+
+ -- LI Daobing <lidaobing@debian.org>  Sat, 30 May 2009 13:20:34 +0800
+
+ibus-chewing (1.0.9.20090508-0ubuntu1) karmic; urgency=low
+
+  * new upstream release (LP: #375505)
+
+ -- LI Daobing <lidaobing@debian.org>  Wed, 13 May 2009 21:52:49 +0800
+
+ibus-chewing (1.0.8.20090428-0ubuntu1) karmic; urgency=low
+
+  * Initial release (LP: #312694)
+
+ -- LI Daobing <lidaobing@debian.org>  Thu, 23 Apr 2009 20:08:05 +0800
+
+ibus-chewing (1.0.7.20090414-1) unstable; urgency=low
+
+  * Initial release (closes: #521629)
+
+ -- LI Daobing <lidaobing@debian.org>  Thu, 23 Apr 2009 20:08:05 +0800

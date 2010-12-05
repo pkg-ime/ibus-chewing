@@ -1,0 +1,16 @@
+CMakeCache.txt 
+CPackConfig.cmake 
+CPackSourceConfig.cmake 
+Makefile 
+cmake_install.cmake 
+cmake_uninstall.cmake 
+install_manifest.txt 
+SPECS/ibus-chewing.spec 
+po/Makefile 
+po/cmake_install.cmake 
+data/chewing.xml
+data/ibus-chewing.schemas
+RELEASE-NOTES.txt_NO_PACK_CHANGELOG_ITEM
+RELEASE-NOTES.txt_NO_PACK_HEAD
+SPECS/RPM-ChangeLog
+CTestTestfile.cmake
