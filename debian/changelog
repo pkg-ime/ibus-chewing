@@ -1,3 +1,10 @@
+ibus-chewing (1.3.9.2-3) unstable; urgency=low
+
+  * Fix "ibus-chewing has annoying pop-up when enabling IME, causing
+    focus to change" (Closes: #630331)
+
+ -- Asias He <asias.hejun@gmail.com>  Tue, 06 Sep 2011 16:25:52 +0800
+
 ibus-chewing (1.3.9.2-2) unstable; urgency=low
 
   * Fix "Cannot close candidate window with escape key since selected

@@ -1,40 +1,17 @@
 #!/usr/bin/make -f
+%:
+	dh $@
 
-build: build-stamp
-build-stamp:
-	dh_quilt_patch
+override_dh_auto_configure:
 	cmake -DCMAKE_INSTALL_PREFIX="/usr" \
 		-DCMAKE_VERBOSE_MAKEFILE=ON \
 		-DCMAKE_SKIP_RPATH=ON \
 		-DCMAKE_EXE_LINKER_FLAGS="-Wl,--as-needed" \
 		-DLIBEXEC_DIR=/usr/lib/ibus-chewing \
 		-DSYSCONF_INSTALL_DIR=/usr/share \
-		.
-	dh build
-	touch $@
 
-clean:
-	dh_quilt_unpatch
-	dh $@
-	rm -rf bin po/CMakeFiles CMakeFiles obj-i486-linux-gnu Testing/
+override_dh_auto_install:
+	dh_auto_install
+	rm -f debian/ibus-chewing/usr/share/doc/ibus-chewing-*/ChangeLog
+	rm -f debian/ibus-chewing/usr/share/doc/ibus-chewing-*/COPYING
 
-install: build install-stamp
-install-stamp:
-	dh install --before dh_gconf
-	mkdir -p $(CURDIR)/debian/ibus-chewing/usr/lib/ibus-chewing/
-	rm -rf $(CURDIR)/debian/ibus-chewing/usr/libexec/
-	dh install --remaining
-	rm -rf $(CURDIR)/debian/ibus-chewing/usr/share/doc/ibus-chewing-*/
-	touch $@
-
-override_dh_installchangelogs:
-	dh_installchangelogs ChangeLog
-
-binary-arch: install
-	dh $@
-
-binary-indep: install
-	dh $@
-
-binary: binary-arch binary-indep
-.PHONY: build clean install binary-arch binary-indep binary
