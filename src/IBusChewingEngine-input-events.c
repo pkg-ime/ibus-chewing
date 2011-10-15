@@ -1,56 +1,60 @@
-#if IBUS_VERSION >= 10200
-/* IBus 1.2 and up */
-gboolean ibus_chewing_engine_process_key_event_1_2(IBusEngine *engine,
-	guint keysym_ignore,  guint  keycode,   guint  modifiers){
-    if (modifiers & IBUS_RELEASE_MASK){
-	/* Skip release event */
-	return TRUE;
-    }
-    IBusChewingEngine *self=IBUS_CHEWING_ENGINE(engine);
+/**
+ * ibus_chewing_engine_keycode_to_keysym:
+ *
+ * Convert keycode to keysym.
+ */
+guint ibus_chewing_engine_keycode_to_keysym(IBusChewingEngine *self, guint keysym,  guint keycode, guint modifiers){
+    /* Get system layout */
     GValue gValue={0};
     gboolean useSysKeyLayout=TRUE;
     if (ibus_chewing_config_get_value(self->config, "general", "use_system_keyboard_layout", &gValue)){
 	useSysKeyLayout=g_value_get_boolean(&gValue);
     }
-    guint keysym;
+
+    guint kSym;
     if (useSysKeyLayout && (!chewing_get_ChiEngMode(self->context))){
 	// English mode.
-	keysym=keysym_ignore;
+	kSym=keysym;
     }else{
-	keysym=ibus_keymap_lookup_keysym (self->keymap_us,keycode,modifiers);
+	/* ibus_keymap_lookup_keysym only handles keycode under 256 */
+	if ((kSym=ibus_keymap_lookup_keysym(self->keymap_us,keycode,modifiers))==IBUS_VoidSymbol){
+	    kSym=keysym;
+	}
     }
-
-    return ibus_chewing_engine_process_key_event(engine, keysym, modifiers);
+    return kSym;
 }
-#endif
 
 gboolean ibus_chewing_engine_process_key_event(IBusEngine *engine,
-	guint keysym, guint  modifiers){
+	guint keysym,  guint keycode, guint modifiers){
     gboolean result=TRUE;
     if (modifiers & IBUS_RELEASE_MASK){
 	/* Skip release event */
 	return TRUE;
     }
     IBusChewingEngine *self=IBUS_CHEWING_ENGINE(engine);
-    G_DEBUG_MSG(2,"***[I2] process_key_event(-, %u(%s), %u) ... proceed.",keysym, keyName_get(keysym), modifiers);
+    guint kSym=ibus_chewing_engine_keycode_to_keysym(self,keysym, keycode, modifiers);
+
+    G_DEBUG_MSG(2,"***[I2] process_key_event(-, %x(%s), %x, %x) orig keysym=%x... proceed.",kSym, keyName_get(kSym), keycode, modifiers,keysym);
     guint state= modifiers & (IBUS_SHIFT_MASK | IBUS_CONTROL_MASK | IBUS_MOD1_MASK);
-    self->_priv->key_last=keysym;
+    self->_priv->key_last=kSym;
     if (state==0){
-	guint keysym_tmp=keysym_KP_to_normal(keysym);
-	if (keysym_tmp){
+	guint kSym_tmp=keysym_KP_to_normal(kSym);
+	if (kSym_tmp){
+	    G_DEBUG_MSG(3,"***[I3] process_key_event(): %x is from keypad.", kSym_tmp);
 	    /* Is keypad key */
 	    if ((self->chewingFlags & CHEWING_FLAG_NUMPAD_ALWAYS_NUMBER) && chewing_get_ChiEngMode(self->context)){
 		chewing_set_ChiEngMode(self->context, 0);
-		self_handle_Default(self,keysym_tmp,FALSE);
+		self_handle_Default(self,kSym_tmp,FALSE);
 		chewing_set_ChiEngMode(self->context,CHINESE_MODE);
 	    }else{
 		/* Convert kp numbers to normal */
-		self_handle_Default(self,keysym_tmp,FALSE);
+		self_handle_Default(self,kSym_tmp,FALSE);
 	    }
 	}else{
-	    switch (keysym){
+	    switch (kSym){
 		case IBUS_Return:
 		case IBUS_KP_Enter:
+		    ibus_chewing_engine_set_status_flag(self,ENGINE_STATUS_NEED_COMMIT);
 		    chewing_handle_Enter(self->context);
 		    break;
 		case IBUS_Escape:
@@ -71,10 +75,16 @@ gboolean ibus_chewing_engine_process_key_event(IBusEngine *engine,
 		    break;
 		case IBUS_space:
 		case IBUS_KP_Space:
-		    /**
-		     * Fix for space in Temporary English mode.
-		     */
-		    chewing_handle_Space(self->context);
+		    if (self->chewingFlags & CHEWING_FLAG_PLAIN_ZHUYIN) {
+			if (chewing_cand_TotalChoice(self->context) == 0) {
+			    chewing_handle_Space(self->context);
+			}
+		    } else {
+			/**
+			 * Fix for space in Temporary English mode.
+			 */
+			chewing_handle_Space(self->context);
+		    }
 		    if (self->inputMode==CHEWING_INPUT_MODE_SELECTION_DONE ||
 			    self->inputMode==CHEWING_INPUT_MODE_BYPASS )
 			ibus_chewing_engine_set_status_flag(self,ENGINE_STATUS_NEED_COMMIT);
@@ -155,12 +165,18 @@ gboolean ibus_chewing_engine_process_key_event(IBusEngine *engine,
 		    /* Some QT application will sneak these through */
 		    return FALSE;
 		default:
-		    self_handle_Default(self,keysym,FALSE);
+		    self_handle_Default(self,kSym,FALSE);
 		    break;
 	    }
 	}
     }else if (state==IBUS_SHIFT_MASK){
-	switch(keysym){
+	switch(kSym){
+	    case IBUS_Return:
+	    case IBUS_KP_Enter:
+		/* Same with Shift Enter and Shift KP_Enter */
+		ibus_chewing_engine_set_status_flag(self,ENGINE_STATUS_NEED_COMMIT);
+		chewing_handle_Enter(self->context);
+		break;
 	    case IBUS_Left:
 		if (self->inputMode==CHEWING_INPUT_MODE_BYPASS)
 		    return FALSE;
@@ -191,17 +207,17 @@ gboolean ibus_chewing_engine_process_key_event(IBusEngine *engine,
 		self_refresh_property(self,"chewing_alnumSize_prop");
 		break;
 	    default:
-		if (keysym>127 || keysym<0){
+		if (kSym>127 || kSym<0){
 		    /* Special keys, must let it through */
 		    return FALSE;
 		}
-		self_handle_Default(self,keysym,TRUE);
+		self_handle_Default(self,kSym,TRUE);
 		break;
 	}
     }else if (state==IBUS_CONTROL_MASK){
-	if (keysym>=IBUS_0 && keysym<=IBUS_9){
-	    chewing_handle_CtrlNum(self->context,keysym);
-//	}else if (keysym==IBUS_v || keysym==IBUS_V){
+	if (kSym>=IBUS_0 && kSym<=IBUS_9){
+	    chewing_handle_CtrlNum(self->context,kSym);
+//	}else if (kSym==IBUS_v || kSym==IBUS_V){
 //	    chewing_handle_Right(self->context);
 	}else{
 	    result=FALSE;

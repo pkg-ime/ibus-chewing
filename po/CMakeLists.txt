@@ -1,7 +1,14 @@
 # Translated languages.
-SET(SOURCES_I18N ../src/IBusChewingEngine.gob ../src/IBusChewingEngine-def.c ../src/main.c)
+SET(SUPPORTED_TRANSLATION zh_CN zh_TW)
+INCLUDE(ManageTranslation)
 
-GETTEXT_CREATE_POT(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pot OPTIONS ${XGETTEXT_OPTIONS_C} SRC ${SOURCES_I18N})
-GETTEXT_CREATE_TRANSLATIONS(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pot ALL ${TRANSLATED}
-    COMMENT "Creating translations.")
+SET(SOURCES_I18N ${CMAKE_SOURCE_DIR}/src/IBusChewingEngine.gob
+  ${CMAKE_SOURCE_DIR}/src/IBusChewingEngine-input-events.c ${CMAKE_SOURCE_DIR}/src/IBusChewingEngine-def.c ../src/main.c)
 
+USE_GETTEXT(ALL SRCS ${SOURCES_I18N} LOCALES ${SUPPORTED_TRANSLATION}
+    XGETTEXT_OPTIONS ${XGETTEXT_OPTIONS_C})
+
+IF(EXISTS $ENV{HOME}/.config/zanata.ini)
+    SET(ZANATA_SERVER "https://translate.zanata.org/zanata/" CACHE STRING "ZANATA Server URL")
+    USE_ZANATA("${ZANATA_SERVER}")
+ENDIF(EXISTS $ENV{HOME}/.config/zanata.ini)

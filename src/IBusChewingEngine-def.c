@@ -195,23 +195,6 @@ static void numpadAlwaysNumber_set_callback(PropertyContext *ctx, GValue *value)
 #endif
 }
 
-#if IBUS_VERSION < 10300
-static void inputStyle_set_callback(PropertyContext *ctx, GValue *value){
-#ifdef IBUS_CHEWING_MAIN
-    IBusChewingEngine *engine=(IBusChewingEngine *) ctx->userData;
-    const gchar *str=g_value_get_string(value);
-    if (strcmp(str,"in application window")==0){
-	engine->_priv->inputStyle=CHEWING_INPUT_STYLE_IN_APPLICATION;
-    }else  if (strcmp(str,"in candidate window")==0){
-	engine->_priv->inputStyle=CHEWING_INPUT_STYLE_IN_CANDIDATE;
-    }else{
-	engine->_priv->inputStyle=CHEWING_INPUT_STYLE_IN_APPLICATION;
-    }
-    ibus_chewing_engine_force_commit(engine);
-#endif /* IBUS_CHEWING_MAIN */
-}
-#endif
-
 static void candPerPage_set_callback(PropertyContext *ctx, GValue *value){
 #ifdef IBUS_CHEWING_MAIN
     IBusChewingEngine *engine=(IBusChewingEngine *) ctx->userData;
@@ -330,25 +313,6 @@ this option determines how these status be synchronized. Valid values:\n\
 	0, 0, 0,
 	N_("Always input numbers when number keys from key pad is inputted."),
     },
-
-/*
- * Input style is decommissioned for ibus 1.3,
- * because ibus 1.3 has built-in support of input style.
- * Using built-in input style provides extra benefit,
- * like typed text won't be lost when focus-out and disable event.
- */
-#if IBUS_VERSION < 10300
-    {G_TYPE_STRING, "inputStyle", "Editing", N_("Input Style"),
-	"in candidate window", inputStyles, NULL,  0, 1,
-	NULL, inputStyle_set_callback,
-	MAKER_DIALOG_PROPERTY_FLAG_INEDITABLE | MAKER_DIALOG_PROPERTY_FLAG_HAS_TRANSLATION,
-       	0, 0,
-	N_("Input style determines where the preedit strings be shown and edited.\n"
-		"\"in application window\": Preedit strings are edited on the target application window.\n"
-		"\"in candidate window\": Preedit strings are edited on the candidate selection window."),
-    },
-#endif
-
     {G_TYPE_BOOLEAN, "plainZhuyin", "Selecting", N_("Plain Zhuyin mode"),
 	"0", NULL, NULL, 0, 1,
 	NULL, plainZhuyin_set_callback,
@@ -387,30 +351,38 @@ this option determines how these status be synchronized. Valid values:\n\
  */
 #ifdef IBUS_CHEWING_MAIN
 
-#if IBUS_VERSION >= 10399
+#if IBUS_COMPAT_VERSION >= 10399
 void g_variant_to_g_value(GVariant *gVar, GValue *gValue){
     const GVariantType *gVType=g_variant_get_type(gVar);
     if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_BOOLEAN)){
+	g_value_init(gValue, G_TYPE_BOOLEAN);
 	g_value_set_boolean(gValue, g_variant_get_boolean(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_UINT16)){
+	g_value_init(gValue, G_TYPE_UINT);
 	g_value_set_uint(gValue, g_variant_get_uint16(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_UINT32)){
+	g_value_init(gValue, G_TYPE_UINT);
 	g_value_set_uint(gValue, g_variant_get_uint32(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_UINT64)){
+	g_value_init(gValue, G_TYPE_UINT64);
 	g_value_set_uint64(gValue, g_variant_get_uint64(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_INT16)){
+	g_value_init(gValue, G_TYPE_INT);
 	g_value_set_int(gValue, g_variant_get_int16(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_INT32)){
+	g_value_init(gValue, G_TYPE_INT);
 	g_value_set_int(gValue, g_variant_get_int32(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_INT64)){
+	g_value_init(gValue, G_TYPE_INT);
 	g_value_set_int64(gValue, g_variant_get_int64(gVar));
     }else if (g_variant_type_is_subtype_of(gVType, G_VARIANT_TYPE_STRING)){
-	g_value_set_int64(gValue, g_variant_get_string(gVar, NULL));
+	g_value_init(gValue, G_TYPE_STRING);
+	g_value_set_string(gValue, g_variant_get_string(gVar, NULL));
     }
 }
 
 GVariant *g_value_to_g_variant(GValue *gValue){
-    GType gType=g_value_get_gtype(gValue);
+    GType gType=G_VALUE_TYPE(gValue);
     GVariant *gVar=NULL;
     switch(gType){
 	case G_TYPE_BOOLEAN:
@@ -419,8 +391,14 @@ GVariant *g_value_to_g_variant(GValue *gValue){
 	case G_TYPE_UINT:
 	    gVar=g_variant_new_uint32(g_value_get_uint(gValue));
 	    break;
+	case G_TYPE_UINT64:
+	    gVar=g_variant_new_uint64(g_value_get_uint(gValue));
+	    break;
 	case G_TYPE_INT:
-	    gVar=g_variant_new_int32(g_value_get_int(gValue));
+	    gVar=g_variant_new_int32(g_value_get_uint(gValue));
+	    break;
+	case G_TYPE_INT64:
+	    gVar=g_variant_new_int64(g_value_get_uint(gValue));
 	    break;
 	case G_TYPE_STRING:
 	    gVar=g_variant_new_string(g_value_get_string(gValue));
@@ -434,15 +412,15 @@ GVariant *g_value_to_g_variant(GValue *gValue){
 #endif
 
 static gboolean ibus_chewing_config_get_value(IBusConfig *config, const gchar *section, const gchar *key, GValue *gValue){
-#if IBUS_VERSION >= 10399
-    GVariant *gVar=g_variant_ref_sink(ibus_config_get_value(config, section, key));
-    if (gVar!=NULL){
-	g_variant_to_g_value(gVar, gValue);
-	g_variant_unref(gVar);
-	return TRUE;
-    }else{
+#if IBUS_COMPAT_VERSION >= 10399
+    GVariant *gVar=ibus_config_get_value(config, section, key);
+    if (gVar==NULL){
 	return FALSE;
     }
+    g_variant_ref_sink(gVar);
+    g_variant_to_g_value(gVar, gValue);
+    g_variant_unref(gVar);
+    return TRUE;
 #else
     return ibus_config_get_value(config, section, key, gValue);
 #endif
@@ -450,7 +428,7 @@ static gboolean ibus_chewing_config_get_value(IBusConfig *config, const gchar *s
 }
 
 static gboolean ibus_chewing_config_set_value(IBusConfig *config, const gchar *section, const gchar *key, GValue *gValue){
-#if IBUS_VERSION >= 10399
+#if IBUS_COMPAT_VERSION >= 10399
     GVariant *gVar=g_variant_ref_sink(g_value_to_g_variant(gValue));
     if (gVar!=NULL){
 	return ibus_config_set_value(config, section, key, gVar);
@@ -462,8 +440,6 @@ static gboolean ibus_chewing_config_set_value(IBusConfig *config, const gchar *s
 #endif
 
 }
-
-
 
 static guint keysym_KP_to_normal(guint keysym){
     if (keysym < IBUS_KP_0 || keysym > IBUS_KP_9){
@@ -537,7 +513,7 @@ const char *keyName_get(guint keyval){
 	case IBUS_Return:
 	    return "Return";
 	case IBUS_KP_Enter:
-	    return "KP_Return";
+	    return "KP_Enter";
 	case IBUS_Escape:
 	    return "Escape";
 	case IBUS_BackSpace:
@@ -583,7 +559,7 @@ const char *keyName_get(guint keyval){
 	case IBUS_KP_End:
 	    return "KP_End";
 	case IBUS_Tab:
-	    return "Table";
+	    return "Tab";
 	case IBUS_Caps_Lock:
 	    return "Caps";
 	case IBUS_Shift_L:
@@ -598,6 +574,16 @@ const char *keyName_get(guint keyval){
 	    return "Control_L";
 	case IBUS_Control_R:
 	    return "Control_R";
+	case IBUS_Super_L:
+	    return "Super_L";
+	case IBUS_Super_R:
+	    return "Super_R";
+	case IBUS_ISO_Lock:
+	    return "ISO_Lock";
+	case IBUS_ISO_Level3_Lock:
+	    return "ISO_Level3_Lock";
+	case IBUS_ISO_Level3_Shift:
+	    return "ISO_Level3_Shift";
 	default:
 	    if (keyval>='0' && keyval<='9'){
 		return &numConst[(keyval-'0')*2];
