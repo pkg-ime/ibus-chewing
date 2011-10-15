@@ -1,9 +1,25 @@
-cmake_minimum_required(VERSION 2.4)
+cmake_minimum_required(VERSION 2.6)
+
+# CMP0011 should be set here, otherwise policy set in module won't affect
+# here.
+CMAKE_POLICY(SET CMP0011 OLD)
+
+# Default CMAKE_INSTALL_PREFIX should be set before PROJECT()
+SET(CMAKE_INSTALL_PREFIX "/usr" CACHE PATH "Install dir prefix")
+
 ####################################################################
 # Project specific information
 #
 PROJECT(ibus-chewing)
 SET(PRJ_SUMMARY "The Chewing engine for IBus input platform")
+SET(PRJ_DESCRIPTION
+"IBus-chewing is an IBus front-end of Chewing, an intelligent Chinese input
+method for Zhuyin (BoPoMoFo) users.
+It supports various Zhuyin keyboard layout, such as standard (DaChen),
+IBM, Gin-Yeah, Eten, Eten 26, Hsu, Dvorak, Dvorak-Hsu, and DaChen26.
+
+Chewing also support toned Hanyu pinyin input.")
+
 SET(CMAKE_C_FLAGS "-Wall")
 
 SET(AUTHORS "Peng Huang, Ding-Yi Chen")
@@ -14,27 +30,31 @@ SET(LICENSE "GPLv2+")
 ####################################################################
 # Includes
 #
-SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/Modules ${CMAKE_ROOT}/Modules  )
-#MESSAGE("CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
+SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/Modules ${CMAKE_ROOT}/Modules )
 
-IF(CMAKE_VERSION)
-    CMAKE_POLICY(SET CMP0005 OLD)
-ENDIF(CMAKE_VERSION)
+INCLUDE(ManageEnvironment RESULT_VARIABLE MANAGE_ENVIRONMENT_PATH)
+IF(MANAGE_ENVIRONMENT_PATH STREQUAL "NOTFOUND")
+    MESSAGE(FATAL_ERROR "ManageEnvironment is not found in CMAKE_MODULE_PATH,
+    please:
+    1) install cmake-fedora, or;
+    2) wget -P SOURCES https://fedorahosted.org/releases/c/m/cmake-fedora/cmake-fedora-modules-only-latest.tar.gz
+    tar zxvf SOURCES/cmake-fedora-modules-only-latest.tar.gz")
+ENDIF(MANAGE_ENVIRONMENT_PATH STREQUAL "NOTFOUND")
 
 INCLUDE(ManageVersion)
 LOAD_RELEASE_FILE("RELEASE-NOTES.txt")
-INCLUDE(UseUninstall)
-
-INCLUDE(CompileEnv)
-SET_USUAL_COMPILE_ENVS()
-
-INCLUDE(CMakeVersion)
+INCLUDE(ManageUninstall)
 
 
 ####################################################################
 # Required
 #
+
 FIND_PACKAGE(PkgConfig)
+
+# Enable GNOME_SHELL support by set the value to 1
+SET_COMPILE_ENV(GNOME_SHELL 0 DISPLAY BOOL "Enable GNOME Shell support")
+
 PKG_CHECK_MODULES(GTK2 REQUIRED gtk+-2.0)
 PKG_CHECK_MODULES(IBUS REQUIRED ibus-1.0)
 STRING(REGEX REPLACE "^([1-9][0-9]*)\\.([0-9]+)\\.([0-9]+).*" "\\1" IBUS_VERSION_MAJOR "${IBUS_VERSION}")
@@ -42,14 +62,17 @@ STRING(REGEX REPLACE "^([1-9][0-9]*)\\.([0-9]+)\\.([0-9]+).*" "\\2" IBUS_VERSION
 STRING(REGEX REPLACE "^([1-9][0-9]*)\\.([0-9]+)\\.([0-9]+).*" "\\3" IBUS_VERSION_PATCH "${IBUS_VERSION}")
 MATH(EXPR IBUS_COMPAT_VERSION
     "${IBUS_VERSION_MAJOR}*10000+${IBUS_VERSION_MINOR}*100+${IBUS_VERSION_PATCH}")
+
 MESSAGE("IBUS_VERSION=${IBUS_VERSION} IBUS_COMPAT_VERSION=${IBUS_COMPAT_VERSION}")
-ADD_DEFINITIONS(-DIBUS_VERSION=${IBUS_COMPAT_VERSION})
-MESSAGE("ADD_DEFINITIONS(-DIBUS_VERSION=${IBUS_COMPAT_VERSION})")
+SET_COMPILE_ENV(IBUS_COMPAT_VERSION "${IBUS_COMPAT_VERSION}"
+    DISPLAY STRING "IBUS_COMPAT_VERSION")
 
 PKG_CHECK_MODULES(XTST REQUIRED xtst x11)
 PKG_CHECK_MODULES(CHEWING chewing>=0.3.2)
-COMMAND_OUTPUT_TO_VARIABLE(CHEWING_DATA_DIR ${PKG_CONFIG_EXECUTABLE} --variable=datadir chewing)
-ADD_DEFINITIONS(-DCHEWING_DATA_DIR='"${CHEWING_DATA_DIR}"')
+EXECUTE_PROCESS(COMMAND ${PKG_CONFIG_EXECUTABLE} --variable=datadir chewing
+    OUTPUT_VARIABLE CHEWING_DATA_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+SET_COMPILE_ENV(CHEWING_DATA_DIR "${CHEWING_DATA_DIR}" DISPLAY PATH
+    "Chewing data dir")
 
 FIND_PROGRAM(GOB2 gob2)
 IF(${GOB2} STREQUAL "GOB2-NOTFOUND")
@@ -59,10 +82,23 @@ ENDIF()
 # Building
 #
 
+
+# Generate chewing.xml
+SET(SYMBOL_XML "<symbol>&#x9177;</symbol>")
+IF(NOT GNOME_SHELL)
+    SET(SYMBOL_XML "<!-- ${SYMBOL_XML} -->")
+ENDIF(NOT GNOME_SHELL)
+
+SET_COMPILE_ENV(CHEWING_HOTKEYS "Control+space")
+SET(HOTKEYS_XML "<hotkeys>${CHEWING_HOTKEYS}</hotkeys>")
+IF(NOT GNOME_SHELL)
+    SET(HOTKEYS_XML "<!-- ${HOTKEYS_XML} -->")
+ENDIF(NOT GNOME_SHELL)
+
+
+
 CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/data/chewing.xml.in ${CMAKE_BINARY_DIR}/data/chewing.xml)
 # Sub directories
-SET(TRANSLATED zh_CN zh_TW)
-INCLUDE(UseGettext)
 ADD_SUBDIRECTORY(po)
 ADD_SUBDIRECTORY(src bin)
 
@@ -89,49 +125,50 @@ INCLUDE(UseGConf)
 ####################################################################
 # Packing
 #
-SET(MAINTAINER_SETTING "MAINTAINER_SETTING_NO_PACK")
+SET(MAINTAINER_SETTING "${CMAKE_SOURCE_DIR}/MAINTAINER_SETTING_NO_PACK")
 INCLUDE(PackSource)
 INCLUDE(PackRPM)
-INCLUDE(UseFedpkg)
+INCLUDE(ManageRelease)
+INCLUDE(ManageReleaseOnFedora)
 
 SET(PRJ_IGNORE_FILES_COMMON
-    "/doc/"  "\\\\.spec$" "messages.po$" "\\\\.orig$"
+    "/doc/"  "\\\\.spec$" "messages.po$" "\\\\.orig$" "/Modules/"
+    "/\\\\.cache/"
     )
 
 # GOB_GENERATED source codes are now excluded,
 # As Bug 519108 (https://bugzilla.redhat.com/show_bug.cgi?id=519108)
 # Is fixed from Fedora 11
 
-SET(PRJ_IGNORE_FILES_COMMON
-    ${PRJ_IGNORE_FILES_COMMON}  "src/maker-dialog.*\\\\.[ch]"
+LIST(APPEND PRJ_IGNORE_FILES_COMMON
+    "src/maker-dialog.*\\\\.[ch]"
     "src/ibus-chewing-engine.*\\\\.[ch]"
     )
 
-SET(PACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES}
+LIST(APPEND PACK_SOURCE_IGNORE_FILES
     ${PRJ_IGNORE_FILES_COMMON} "/bin/" "\\\\.xml$" "\\\\.schemas")
 
 PACK_SOURCE(PACK_SOURCE_FILE_NAME "${RPM_BUILD_SOURCES}")
 PACK_RPM(PRJ_SRPM_FILE_NAME "${RPM_BUILD_SPECS}/project.spec.in" "${PACK_SOURCE_FILE_NAME}")
 
-# If mock exists, then add mock related targets.
-FIND_PROGRAM(MOCK_CMD mock)
-IF(NOT MOCK_CMD STREQUAL "MOCK_CMD-NOTFOUND")
-    USE_MOCK("${RPM_BUILD_SPECS}/project.spec.in")
-ENDIF(NOT MOCK_CMD STREQUAL "MOCK_CMD-NOTFOUND")
+# "Off" Warning is displayed if mock is not installed.
+USE_MOCK("${RPM_BUILD_SPECS}/project.spec.in")
 
-IF(EXISTS ${MAINTAINER_SETTING})
-    USE_FEDPKG("${RPM_BUILD_SRPMS}/${PRJ_SRPM_FILE_NAME}" )
-    USE_BODHI()
-ENDIF(EXISTS ${MAINTAINER_SETTING})
 
-ADD_DEPENDENCIES(pack_src pot_file)
-
-####################################################################
-# Hosting
+#####################################################################
+# Hosting and Release
 #
-INCLUDE(UseHostingService)
-USE_HOSTING_SERVICE_READ_SETTING_FILE("${MAINTAINER_SETTING}"
-    "${RPM_BUILD_SOURCES}/${PACK_SOURCE_FILE_NAME}")
+
+# "Off" Warning is displayed if ${MAINTAINER_SETTING} does not exist.
+MANAGE_RELEASE(${MAINTAINER_SETTING} UPLOAD src ${RPM_BUILD_SOURCES}/${PACK_SOURCE_FILE_NAME})
+
+# Set to "True" to build against updates-candidate if possible.
+#SET(FEDORA_CANDIDATE_PREFERRED 1 CACHE BOOL FEDORA_CANDIDATE_PREFERRED)
+
+# Set to "True" to build against testing-candidate if possible.
+#SET(EPEL_CANDIDATE_PREFERRED 1 CACHE BOOL EPEL_CANDIDATE_PREFERRED)
+RELEASE_ON_FEDORA("${RPM_BUILD_SRPMS}/${PRJ_SRPM_FILE_NAME}"
+    TAGS ${FEDORA_CURRENT_RELEASE_TAGS})
 
 
 ####################################################################
