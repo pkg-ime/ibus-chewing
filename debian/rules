@@ -12,6 +12,5 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	dh_auto_install
-	rm -f debian/ibus-chewing/usr/share/doc/ibus-chewing-*/ChangeLog
-	rm -f debian/ibus-chewing/usr/share/doc/ibus-chewing-*/COPYING
+	rm -rf debian/ibus-chewing/usr/share/doc/ibus-chewing-*
 
