@@ -1,3 +1,10 @@
+ibus-chewing (1.3.10-1) unstable; urgency=low
+
+  * New upstream release. 
+  * All Debian patcheds dropped.
+
+ -- Osamu Aoki <osamu@debian.org>  Sun, 25 Dec 2011 21:13:53 +0900
+
 ibus-chewing (1.3.9.2-3) unstable; urgency=low
 
   * Fix "ibus-chewing has annoying pop-up when enabling IME, causing
