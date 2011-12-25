@@ -1,10 +1,11 @@
-ibus-chewing (1.3.10-1) unstable; urgency=low
+ibus-chewing (1.3.10+clean-1) unstable; urgency=low
 
   * New upstream release. 
   * All Debian patcheds dropped.
   * Add Osamu as uploaders.
+  * Repackaged upstream tar with normal tar and removing .swo
 
- -- Osamu Aoki <osamu@debian.org>  Sun, 25 Dec 2011 21:13:53 +0900
+ -- Osamu Aoki <osamu@debian.org>  Mon, 26 Dec 2011 00:17:58 +0900
 
 ibus-chewing (1.3.9.2-3) unstable; urgency=low
 
