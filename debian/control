@@ -2,7 +2,9 @@ Source: ibus-chewing
 Section: utils
 Priority: optional
 Maintainer: IME Packaging Team <pkg-ime-devel@lists.alioth.debian.org>
-Uploaders: LI Daobing <lidaobing@debian.org>, Asias He <asias.hejun@gmail.com>
+Uploaders: LI Daobing <lidaobing@debian.org>, 
+ Asias He <asias.hejun@gmail.com>,
+ Osamu Aoki <osamu@debian.org>
 DM-Upload-Allowed: yes
 Build-Depends: debhelper (>= 7.0.50~), 
  cmake,
