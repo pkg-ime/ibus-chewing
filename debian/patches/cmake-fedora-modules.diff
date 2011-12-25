@@ -1,0 +1,3136 @@
+Author: Ding-Yi Chen et. al.
+Description: cmake-fedora 0.8.1
+ Downloaded from https://fedorahosted.org/releases/c/m/cmake-fedora/ 
+ as cmake-fedora-0.8.1-modules-only.tar.gz See also at
+ http://git.fedorahosted.org/git/?p=cmake-fedora.git
+diff -Nru ibus-chewing-orig/Modules/cmake_uninstall.cmake.in ibus-chewing/Modules/cmake_uninstall.cmake.in
+--- ibus-chewing-orig/Modules/cmake_uninstall.cmake.in	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/cmake_uninstall.cmake.in	2011-04-14 14:52:47.000000000 +0900
+@@ -0,0 +1,21 @@
++IF(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
++  MESSAGE(FATAL_ERROR "Cannot find install manifest: \"@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt\"")
++ENDIF(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
++
++FILE(READ "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt" files)
++STRING(REGEX REPLACE "\n" ";" files "${files}")
++FOREACH(file ${files})
++  MESSAGE(STATUS "Uninstalling \"$ENV{DESTDIR}${file}\"")
++  IF(EXISTS "$ENV{DESTDIR}${file}")
++    EXEC_PROGRAM(
++      "@CMAKE_COMMAND@" ARGS "-E remove \"$ENV{DESTDIR}${file}\""
++      OUTPUT_VARIABLE rm_out
++      RETURN_VALUE rm_retval
++      )
++    IF(NOT "${rm_retval}" STREQUAL 0)
++      MESSAGE(FATAL_ERROR "Problem when removing \"$ENV{DESTDIR}${file}\"")
++    ENDIF(NOT "${rm_retval}" STREQUAL 0)
++  ELSE(EXISTS "$ENV{DESTDIR}${file}")
++    MESSAGE(STATUS "File \"$ENV{DESTDIR}${file}\" does not exist.")
++  ENDIF(EXISTS "$ENV{DESTDIR}${file}")
++ENDFOREACH(file)
+diff -Nru ibus-chewing-orig/Modules/CMakeVersion.cmake ibus-chewing/Modules/CMakeVersion.cmake
+--- ibus-chewing-orig/Modules/CMakeVersion.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/CMakeVersion.cmake	2011-09-20 09:05:22.000000000 +0900
+@@ -0,0 +1,29 @@
++# - Cmake version detection.
++# This module is mainly for provide an unified environment for CMake 2.4
++# and up. You can use this module even you are normally with higher version
++# such like 2.6.
++#
++IF(NOT DEFINED _CMAKE_VERSION_CMAKE_)
++    SET(_CMAKE_VERSION_CMAKE_ "DEFINED")
++    INCLUDE(ManageMessage)
++    M_MSG(${M_INFO1} "CMAKE_HOST_SYSTEM=${CMAKE_HOST_SYSTEM}")
++    M_MSG(${M_INFO1} "CMAKE_HOST_SYSTEM_NAME=${CMAKE_HOST_SYSTEM_NAME}")
++    M_MSG(${M_INFO1}
++	"CMAKE_HOST_SYSTEM_PROCESSOR=${CMAKE_HOST_SYSTEM_PROCESSOR}")
++    M_MSG(${M_INFO1}
++	"CMAKE_HOST_SYSTEM_VERSION=${CMAKE_HOST_SYSTEM_VERSION}")
++    M_MSG(${M_INFO1} "CMAKE_SYSTEM=${CMAKE_SYSTEM}")
++    M_MSG(${M_INFO1} "CMAKE_SYSTEM_NAME=${CMAKE_SYSTEM_NAME}")
++    M_MSG(${M_INFO1}
++	"CMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}")
++    M_MSG(${M_INFO1}
++	"CMAKE_SYSTEM_VERSION=${CMAKE_SYSTEM_VERSION}")
++    M_MSG(${M_INFO2} "CMAKE_MAJOR_VERSION=${CMAKE_MAJOR_VERSION}")
++    M_MSG(${M_INFO2} "CMAKE_MINOR_VERSION=${CMAKE_MINOR_VERSION}")
++    M_MSG(${M_INFO2} "CMAKE_PATCH_VERSION=${CMAKE_PATCH_VERSION}")
++
++    IF(NOT CMAKE_VERSION)
++	SET(CMAKE_VERSION "${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
++    ENDIF(NOT CMAKE_VERSION)
++ENDIF(NOT DEFINED _CMAKE_VERSION_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/DateTimeFormat.cmake ibus-chewing/Modules/DateTimeFormat.cmake
+--- ibus-chewing-orig/Modules/DateTimeFormat.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/DateTimeFormat.cmake	2011-08-03 09:21:35.000000000 +0900
+@@ -0,0 +1,37 @@
++# - Date/time format module.
++#
++# Included by:
++#   ManageVersion
++#
++# Defines the following macros:
++#    TODAY(date_var format [locale])
++#      - Get date of today in specified format and locale.
++#        * Parameters:
++#     	   date_var: Result date string
++#          format: date format for date(1)
++#          locale: locale of the string. Use current locale setting if
++#            locale is not given.
++#
++# Provides the following variables:
++#    TODAY_CHANGELOG: Today in the format that is used in RPM Changelog.
++#     e.g. Wed 08 Aug 2010
++#
++#    TODAY_SHORT: Short presentation of today, e.g. 20100818.
++#
++
++IF(NOT DEFINED _DATE_TIME_FORMAT_CMAKE_)
++    SET(_DATE_TIME_FORMAT_CMAKE_ "DEFINED")
++
++    MACRO(TODAY date_var format)
++	INCLUDE(ManageVariable)
++	SET(_locale ${ARGV2})
++	IF(_locale)
++	    SET(ENV{LC_ALL} ${_locale})
++	ENDIF(_locale)
++	COMMAND_OUTPUT_TO_VARIABLE(${date_var} date --utc "${format}")
++    ENDMACRO(TODAY date_var format)
++
++    TODAY(TODAY_CHANGELOG "+%a %b %d %Y" "C")
++    TODAY(TODAY_SHORT "+%Y%m%d" "C")
++ENDIF(NOT DEFINED _DATE_TIME_FORMAT_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageEnvironment.cmake ibus-chewing/Modules/ManageEnvironment.cmake
+--- ibus-chewing-orig/Modules/ManageEnvironment.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageEnvironment.cmake	2011-09-20 10:56:54.000000000 +0900
+@@ -0,0 +1,185 @@
++# - Manage build environment such as environment variables and compile flags.
++# This module predefine various environment variables, cmake policies, and
++# compile flags.
++#
++# The setting can be viewed and modified by ccmake.
++#
++# List of frequently used variable and compile flags:
++#    + CMAKE_INSTALL_PREFIX: Compile flag whose value is ${CMAKE_INSTALL_PREFIX}.
++#    + BIN_DIR: Directory for executable.
++#      Default:  ${CMAKE_INSTALL_PREFIX}/bin
++#    + DATA_DIR: Directory for architecture independent data files.
++#      Default: ${CMAKE_INSTALL_PREFIX}/share
++#    + DOC_DIR: Directory for documentation
++#      Default: ${DATA_DIR}/doc
++#    + SYSCONF_DIR: System wide configuration files.
++#      Default: /etc
++#    + LIB_DIR: System wide library path.
++#      Default: ${CMAKE_INSTALL_PREFIX}/lib for 32 bit,
++#               ${CMAKE_INSTALL_PREFIX}/lib64 for 64 bit.
++#    + LIBEXEC_DIR: Executables that are not meant to be executed by user directly.
++#      Default: ${CMAKE_INSTALL_PREFIX}/libexec
++#    + PROJECT_NAME: Project name
++#
++# Defines following macros:
++#   SET_COMPILE_ENV(var default_value [ENV_NAME env_name]
++#     [DISPLAY type docstring])
++#     - Add compiler environment with a variable and its value.
++#       If the variable is not defined in cmake, the value is obtained from
++#       following priority:
++#       1. Environment variable with the same name (or specified via ENV_NAME)
++#       2. Parameter default_value
++#       Parameters:
++#       + var: Variable to be set
++#       + default_value: Default value of the var
++#       + env_name: (Optional)The name of environment variable.
++#         Only need if different from var.
++#       + type: is used by the CMake GUI to choose a widget with
++#         which the user sets a value. Valid values are:
++#           PATH     = Directory chooser dialog.
++#           STRING   = Arbitrary string.
++#           BOOL     = Boolean ON/OFF checkbox.
++#           INTERNAL = No GUI entry (used for persistent variables).
++#       + docstring: Label to show ing CMAKE GUI.
++#
++#  SET_USUAL_COMPILE_ENVS()
++#  - Set the most often used variable and compile flags.
++#    It defines compile flags according to the values of corresponding variables,
++#    usually under the same or similar name.
++#    If a corresponding variable is not defined yet, then a default value is assigned
++#    to that variable, then define the flag.
++#
++#    Defines following flags according to the variable with same name.
++#    + CMAKE_INSTALL_PREFIX: Compile flag whose value is ${CMAKE_INSTALL_PREFIX}.
++#    + BIN_DIR: Directory for executable.
++#      Default:  ${CMAKE_INSTALL_PREFIX}/bin
++#    + DATA_DIR: Directory for architecture independent data files.
++#      Default: ${CMAKE_INSTALL_PREFIX}/share
++#    + DOC_DIR: Directory for documentation
++#      Default: ${DATA_DIR}/doc
++#    + SYSCONF_DIR: System wide configuration files.
++#      Default: /etc
++#    + LIB_DIR: System wide library path.
++#      Default: ${CMAKE_INSTALL_PREFIX}/lib for 32 bit,
++#               ${CMAKE_INSTALL_PREFIX}/lib64 for 64 bit.
++#    + LIBEXEC_DIR: Executables that are not meant to be executed by user directly.
++#      Default: ${CMAKE_INSTALL_PREFIX}/libexec
++#    + PROJECT_NAME: Project name
++#    + PRJ_VER: Project version
++#    + PRJ_DATA_DIR: Data directory for the project.
++#      Default: ${DATA_DIR}/${PROJECT_NAME}
++#    + PRJ_DOC_DIR: DocuFILEPATH = File chooser dialog.
++#      Default: ${DOC_DIR}/${PROJECT_NAME}-${PRJ_VER}
++
++IF(NOT DEFINED _MANAGE_ENVIRONMENT_CMAKE_)
++    SET(_MANAGE_ENVIRONMENT_CMAKE_ "DEFINED")
++    SET(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS ON)
++    CMAKE_POLICY(VERSION 2.6)
++
++    MACRO(SET_COMPILE_ENV var default_value)
++	SET(_stage "")
++	SET(_type "INTERNAL")
++	SET(_docstring "${var}")
++	SET(_env "${var}")
++	FOREACH(_arg ${ARGN})
++	    IF(_arg STREQUAL "ENV_NAME")
++	    ELSEIF(_arg STREQUAL "DISPLAY")
++		SET(_stage TYPE)
++	    ELSE(_arg STREQUAL "ENV_NAME")
++		IF(_stage STREQUAL "ENV_NAME")
++		    SET(_env "${_arg}")
++		ELSEIF(_stage STREQUAL "TYPE")
++		    SET(_type "${_arg}")
++		    SET(_stage DOCSTRING)
++		ELSEIF(_stage STREQUAL "DOCSTRING")
++		    SET(_docstring "${_arg}")
++		ENDIF(_stage STREQUAL "ENV_NAME")
++	    ENDIF(_arg STREQUAL "ENV_NAME")
++	ENDFOREACH(_arg ${ARGN})
++
++	# Set the variable
++	IF(DEFINED ${var})
++	    SET(${var} "${${var}}" CACHE ${_type} "${_docstring}")
++	ELSEIF(NOT "$ENV{${_env}}" STREQUAL "")
++	    SET(${var} "$ENV{${_env}}" CACHE ${_type} "${_docstring}")
++	ELSE(DEFINED ${var})
++	    # Default value
++	    SET(${var} "${default_value}" CACHE ${_type} "${_docstring}")
++	ENDIF(DEFINED ${var})
++
++	# Enforce CMP0005 to new, yet pop after ADD_DEFINITION
++	CMAKE_POLICY(PUSH)
++	CMAKE_POLICY(SET CMP0005 NEW)
++	#	ADD_DEFINITIONS(-D${_env}='"${${var}}"')
++	ADD_DEFINITIONS(-D${_env}=${${var}})
++	CMAKE_POLICY(POP)
++    ENDMACRO(SET_COMPILE_ENV var default_value)
++
++    MACRO(MANAGE_CMAKE_POLICY policyName defaultValue)
++	IF(POLICY ${policyName})
++	    CMAKE_POLICY(GET "${policyName}" _cmake_policy_value)
++	    IF(_cmake_policy_value STREQUAL "")
++		# Policy not defined yet
++		CMAKE_POLICY(SET "${policyName}" "${defaultValue}")
++	    ENDIF(_cmake_policy_value STREQUAL "")
++	ENDIF(POLICY ${policyName})
++    ENDMACRO(MANAGE_CMAKE_POLICY policyName defaultValue)
++
++    ####################################################################
++    # Recommended policy setting
++    #
++    # CMP0005: Preprocessor definition values are now escaped automatically.
++    # OLD:Preprocessor definition values are not escaped.
++    MANAGE_CMAKE_POLICY(CMP0005 NEW)
++
++    # CMP0009: FILE GLOB_RECURSE calls should not follow symlinks by default.
++    # OLD: FILE GLOB_RECURSE calls follow symlinks
++    MANAGE_CMAKE_POLICY(CMP0009 NEW)
++
++    # CMP0017: Prefer files from the CMake module directory when including from there.
++    # OLD: Prefer files from CMAKE_MODULE_PATH regardless
++    MANAGE_CMAKE_POLICY(CMP0017 OLD)
++
++    ####################################################################
++    # CMake Variables
++    #
++    SET_COMPILE_ENV(CMAKE_INSTALL_PREFIX "/usr"
++	DISPLAY PATH "Install dir prefix")
++    SET_COMPILE_ENV(BIN_DIR  "${CMAKE_INSTALL_PREFIX}/bin"
++	DISPLAY PATH "Binary dir")
++    SET_COMPILE_ENV(DATA_DIR "${CMAKE_INSTALL_PREFIX}/share"
++	DISPLAY PATH "Data dir")
++    SET_COMPILE_ENV(DOC_DIR  "${DATA_DIR}/doc"
++	DISPLAY PATH "Documentation dir")
++    SET_COMPILE_ENV(SYSCONF_DIR "/etc"
++	DISPLAY PATH "System configuration dir")
++    SET_COMPILE_ENV(LIBEXEC_DIR "${CMAKE_INSTALL_PREFIX}/libexec"
++	DISPLAY	PATH "LIBEXEC dir")
++
++    IF(CMAKE_SYSTEM_PROCESSOR MATCHES "64")
++	SET_COMPILE_ENV(IS_64 "64" DISPLAY STRING "IS_64")
++    ENDIF(CMAKE_SYSTEM_PROCESSOR MATCHES "64")
++
++    IF(NOT DEFINED LIB_DIR)
++	SET_COMPILE_ENV(LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib${IS_64}")
++    ENDIF(NOT DEFINED LIB_DIR)
++
++    IF(DEFINED PROJECT_NAME)
++	SET_COMPILE_ENV(PROJECT_NAME "${PROJECT_NAME}")
++	SET_COMPILE_ENV(PRJ_DATA_DIR "${DATA_DIR}/${PROJECT_NAME}")
++
++	IF(DEFINED PRJ_VER)
++	    SET_COMPILE_ENV(PRJ_VER "${PRJ_VER}")
++	ENDIF(DEFINED PRJ_VER)
++    ENDIF(DEFINED PROJECT_NAME)
++
++    # Directory to store cmake-fedora specific temporary files.
++    IF(NOT CMAKE_FEDORA_TMP_DIR)
++	SET(CMAKE_FEDORA_TMP_DIR "${CMAKE_BINARY_DIR}/NO_PACK")
++    ENDIF(NOT CMAKE_FEDORA_TMP_DIR)
++
++    ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_FEDORA_TMP_DIR}
++	COMMAND cmake -E make_directory ${CMAKE_FEDORA_TMP_DIR}
++	COMMENT "Create CMAKE_FEDORA_TMP_DIR"
++	)
++ENDIF(NOT DEFINED _MANAGE_ENVIRONMENT_CMAKE_)
+diff -Nru ibus-chewing-orig/Modules/ManageMaintainerTargets.cmake ibus-chewing/Modules/ManageMaintainerTargets.cmake
+--- ibus-chewing-orig/Modules/ManageMaintainerTargets.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageMaintainerTargets.cmake	2011-09-20 11:28:42.000000000 +0900
+@@ -0,0 +1,290 @@
++# - Read setting files and provides developer only targets.
++# This module has macros that generate variables such as
++# upload to a hosting services, which are valid to only the developers.
++# This is normally done by checking the existence of a developer
++# setting file.
++#
++# Includes:
++#    ManageSourceVersionControl
++#
++# Included by:
++#    ManageRelease
++#
++# Defines following Macros:
++#   MANAGE_MAINTAINER_TARGETS_UPLOAD(fileLocalPath [file2LocalPath ..]
++#   [DEST_PATH destPath] [FILE_ALIAS fileAlias])
++#   - Upload a file to hosting services
++#       By default, it will sent to all hosting services defined in
++#       HOSTING_SERVICES
++#     Arguments:
++#     + fileLocalPath: Local path of the file to be uploaded.
++#     + file2LocalPath: (Optional) Local path of 2nd (3rd and so on) file to be uploaded.
++#     + DEST_PATH destPath: (Optional) Destination path.
++#       Default is "." if DEST_PATH is not used.
++#     + HOST_SERVICE hostService: Only sent files to this hosting service.
++#       Some properties will get preset if hostSevice is recognized.
++#     + FILE_ALIAS fileAlias: (Optional) Alias to be appeared as part of make target.
++#       Default: file name is used.
++#     Reads following variables:
++#     + HOSTING_SERVICES: list of hosting services to for uploading project
++#       files.
++#     Defines following variables:
++#     + MAINTAINER_UPLOAD_COMMAND: Full path of command that upload tarball to
++#       hosting services
++#
++#   MAINTAINER_SETTING_READ_FILE([filename])
++#   - Read the maintainer setting file.
++#     It checks the existence of setting file.
++#     If it does not exist, this macro acts as a no-op;
++#     if it exists, then it reads variables defined in the setting file,
++#     and set relevant targets.
++#     See the "Setting File Format" section for description of file format.
++#     Arguments:
++#     + filename: (Optional) Filename of the setting file.
++#     Reads following variables:
++#     + PRJ_VER: Project version.
++#     + CHANGE_SUMMARY: Change summary.
++#     Defines following targets:
++#     + upload: Upload files to all hosting services.
++#     + upload_<hostService>: Upload files to <hostService>.
++#
++#
++# Setting File Format
++#
++# It is basically the "variable=value" format.
++# For variables which accept list, use ';' to separate each element.
++# A line start with '#' is deemed as comment.
++#
++# Recognized Variable:
++# Although it does no harm to define other variables in the setting file,
++# but this module only recognizes following variables:
++#
++#   HOSTING_SERVICES
++# A list of hosting services that packages are hosted. It allows multiple elements.
++#
++#   SOURCE_VERSION_CONTROL
++# Version control system for the source code. Accepted values: git, hg, svn, cvs.
++#
++# The services can be defined by following format:
++#   <ServiceName>_<PropertyName>=<value>
++#
++# ServiceName is the name of the hosting service.
++# If using a known service name, you may be able to omit some definition such
++# like protocol, as they have build in value.
++# Do not worry that your hosting service is
++# not in the known list, you can still benefit from this module, providing
++# your hosting service use supported protocols.
++#
++# Known service name is: SourceForge, FedoraHosted.
++#
++#
++# PropertyName is a property that is needed to preform the upload.
++#    USER: the user name for the hosting service.
++#    SITE: the host name of the hosting service.
++#    PROTOCOL:  (Optional if service is known) Protocol for upload.
++#          Supported: sftp, scp.
++#    BATCH: (Optional) File that stores the batch commands.
++#    BATCH_TEMPATE: (Optional) File that provides template to for generating
++#                   batch commands.
++#                   If BATCH is also given: Generated batch file is named
++#                   as defined with BATCH;
++#                   if BATCH is not given: Generated batch file is named
++#                   as ${CMAKE_BINARY_DIR}/BatchUpload-${ServiceName}
++#    OPTIONS: (Optional) Other options to be passed.
++#
++# Example:
++#
++# For a hosting service "Host1" with git,
++# while uploading the source package to "Host2" with sftp.
++# The setting file might looks as follows:
++#
++# SOURCE_VERSION_CONTROL=git
++# # No, Host1 is not needed here.
++# HOSTING_SERVICES=Host2
++#
++# Host2_USER=host2account
++# Host2_PROTOCOL=sftp
++# Host2_SITE=host2hostname
++# Host2_BATCH_TEMPLATE=BatchUpload-Host2.in
++#
++
++IF(NOT DEFINED _MANAGE_MAINTAINER_TARGETS_CMAKE_)
++    SET(_MANAGE_MAINTAINER_TARGETS_CMAKE_ "DEFINED")
++    INCLUDE(ManageMessage)
++
++    MACRO(MANAGE_MAINTAINER_TARGETS_SFTP
++	    hostService remoteBasePath destPath fileAlias fileLocalPath )
++	FIND_PROGRAM(MAINTAINER_UPLOAD_COMMAND sftp)
++	IF(MAINTAINER_UPLOAD_COMMAND STREQUAL "MAINTAINER_UPLOAD_COMMAND-NOTFOUND")
++	    MESSAGE(FATAL_ERROR "Program sftp is not found!")
++	ENDIF(MAINTAINER_UPLOAD_COMMAND STREQUAL "MAINTAINER_UPLOAD_COMMAND-NOTFOUND")
++
++	IF(NOT "${${hostService}_BATCH_TEMPLATE}" STREQUAL "")
++	    IF(NOT "${hostService}_BATCH" STREQUAL "")
++		SET(${hostService}_BATCH
++		    ${CMAKE_BINARY_DIR}/BatchUpload-${hostService}_NO_PACK)
++	    ENDIF(NOT "${hostService}_BATCH" STREQUAL "")
++	    CONFIGURE_FILE(${hostService}_BATCH_TEMPLATE ${hostService}_BATCH)
++	    SET(PACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES} ${hostService}_BATCH)
++	ENDIF(NOT "${${hostService}_BATCH_TEMPLATE}" STREQUAL "")
++
++	IF(NOT "${hostService}_BATCH" STREQUAL "")
++	    SET(MAINTAINER_UPLOAD_COMMAND "${MAINTAINER_UPLOAD_COMMAND} -b ${hostService}_BATCH" )
++	ENDIF(NOT "${hostService}_BATCH" STREQUAL "")
++
++	IF(NOT "${hostService}_OPTIONS" STREQUAL "")
++	    SET(MAINTAINER_UPLOAD_COMMAND "${MAINTAINER_UPLOAD_COMMAND} -F ${hostService}_OPTIONS" )
++	ENDIF(NOT "${hostService}_OPTIONS" STREQUAL "")
++
++	SET(MAINTAINER_UPLOAD_COMMAND "${MAINTAINER_UPLOAD_COMMAND} ${${hostService}_USER}@${${hostService}_SITE}")
++
++	ADD_CUSTOM_TARGET(upload_${hostService}_${fileAlias}
++	    COMMAND ${MAINTAINER_UPLOAD_COMMAND}
++	    DEPENDS ${fileLocalPath} ${DEVELOPER_DEPENDS}
++	    COMMENT "Uploading the ${fileLocalPath} to ${hostService}..."
++	    VERBATIM
++	    )
++    ENDMACRO(MANAGE_MAINTAINER_TARGETS_SFTP
++        hostService remoteBasePath destPath fileAlias fileLocalPath )
++
++    MACRO(MANAGE_MAINTAINER_TARGETS_SCP
++	    hostService remoteBasePath destPath fileAlias fileLocalPath)
++	FIND_PROGRAM(MAINTAINER_UPLOAD_COMMAND scp)
++	IF(MAINTAINER_UPLOAD_COMMAND STREQUAL "MAINTAINER_UPLOAD_COMMAND-NOTFOUND")
++	    MESSAGE(FATAL_ERROR "Program scp is not found!")
++	ENDIF(MAINTAINER_UPLOAD_COMMAND STREQUAL "MAINTAINER_UPLOAD_COMMAND-NOTFOUND")
++
++	IF("${remoteBasePath}" STREQUAL ".")
++	    IF("${destPath}" STREQUAL ".")
++		SET(_dest "")
++	    ELSE("${destPath}" STREQUAL ".")
++		SET(_dest ":${destPath}")
++	    ENDIF("${destPath}" STREQUAL ".")
++	ELSE("${remoteBasePath}" STREQUAL ".")
++	    IF("${destPath}" STREQUAL ".")
++		SET(_dest ":${remoteBasePath}")
++	    ELSE("${destPath}" STREQUAL ".")
++		SET(_dest ":${remoteBasePath}/${destPath}")
++	    ENDIF("${destPath}" STREQUAL ".")
++	ENDIF("${remoteBasePath}" STREQUAL ".")
++
++	ADD_CUSTOM_TARGET(upload_${hostService}_${fileAlias}
++	    COMMAND ${MAINTAINER_UPLOAD_COMMAND} ${${hostService}_OPTIONS} ${fileLocalPath}
++	      ${${hostService}_USER}@${${hostService}_SITE}${_dest}
++	    DEPENDS ${fileLocalPath} ${DEVELOPER_DEPENDS}
++	    COMMENT "Uploading the ${fileLocalPath} to ${hostService}..."
++	    VERBATIM
++	    )
++    ENDMACRO(MANAGE_MAINTAINER_TARGETS_SCP
++	hostService fileLocalPath remoteBasePath destPath fileAlias)
++
++    MACRO(MANAGE_MAINTAINER_TARGETS_GOOGLE_UPLOAD)
++	FIND_PROGRAM(CURL_CMD curl)
++	IF(CURL_CMD STREQUAL "CURL_CMD-NOTFOUND")
++	    MESSAGE(FATAL_ERROR "Need curl to perform google upload")
++	ENDIF(CURL_CMD STREQUAL "CURL_CMD-NOTFOUND")
++    ENDMACRO(MANAGE_MAINTAINER_TARGETS_GOOGLE_UPLOAD)
++
++    MACRO(MANAGE_MAINTAINER_TARGETS_UPLOAD fileLocalPath)
++	SET(_destPath ".")
++	SET(_remoteBasePath ".")
++	GET_FILENAME_COMPONENT(_fileAlias "${fileLocalPath}" NAME)
++	SET(_fileLocalPathList ${fileLocalPath})
++	SET(_stage "")
++	FOREACH(_arg ${ARGN})
++	    IF ("${_arg}" STREQUAL "FILE_ALIAS")
++		SET(_stage "FILE_ALIAS")
++	    ELSEIF("${_arg}" STREQUAL "DEST_PATH")
++		SET(_stage "DEST_PATH")
++	    ELSE("${_arg}" STREQUAL "FILE_ALIAS")
++		IF(_stage STREQUAL "FILE_ALIAS")
++		    SET(_fileAlias "${_arg}")
++		ELSEIF(_stage STREQUAL "DEST_PATH")
++		    SET(_destPath "${_arg}")
++		ELSE(_stage STREQUAL "FILE_ALIAS")
++		    LIST(APPEND _fileLocalPathList "${_arg}")
++		ENDIF(_stage STREQUAL "FILE_ALIAS")
++	    ENDIF("${_arg}" STREQUAL "FILE_ALIAS")
++	ENDFOREACH(_arg ${ARGN})
++
++	FOREACH(_hostService ${HOSTING_SERVICES})
++	    IF("${_hostService}" MATCHES "[Ss][Oo][Uu][Rr][Cc][Ee][Ff][Oo][Rr][Gg][Ee]")
++		SET(${_hostService}_PROTOCOL sftp)
++		SET(${_hostService}_SITE frs.sourceforge.net)
++	    ELSEIF("${_hostService}" MATCHES "[Ff][Ee][Dd][Oo][Rr][Aa][Hh][Oo][Ss][Tt][Ee][Dd]")
++		SET(${_hostService}_PROTOCOL scp)
++		SET(${_hostService}_SITE fedorahosted.org)
++		SET(_remoteBasePath "${PROJECT_NAME}")
++	    ELSE("${_hostService}" MATCHES "[Ss][Oo][Uu][Rr][Cc][Ee][Ff][Oo][Rr][Gg][Ee]")
++	    ENDIF("${_hostService}" MATCHES "[Ss][Oo][Uu][Rr][Cc][Ee][Ff][Oo][Rr][Gg][Ee]")
++
++	    IF(${_hostService}_PROTOCOL STREQUAL "sftp")
++		MANAGE_MAINTAINER_TARGETS_SFTP(${_hostService} "${_remoteBasePath}"
++		    "${_destPath}" "${_fileAlias}" "${_fileLocalPathList}")
++	    ELSEIF(${_hostService}_PROTOCOL STREQUAL "scp")
++		MANAGE_MAINTAINER_TARGETS_SCP(${_hostService} "${_remoteBasePath}"
++		    "${_destPath}" "${_fileAlias}" "${_fileLocalPathList}")
++	    ENDIF(${_hostService}_PROTOCOL STREQUAL "sftp")
++	    ADD_DEPENDENCIES(upload_${_hostService} upload_${_hostService}_${_fileAlias})
++
++	ENDFOREACH(_hostService ${HOSTING_SERVICES})
++    ENDMACRO(MANAGE_MAINTAINER_TARGETS_UPLOAD hostService fileLocalPath)
++
++    MACRO(MAINTAINER_SETTING_READ_FILE)
++	SET(_disabled 0)
++	IF(ARGV0 STREQUAL "")
++	    SET(_file ${MAINTAINER_SETTING})
++	ELSE(ARGV0 STREQUAL "")
++	    SET(_file ${ARGV0})
++	ENDIF(ARGV0 STREQUAL "")
++
++	IF(_file STREQUAL "")
++	    M_MSG(${M_OFF} "Maintain setting file is not given,  disable maintainer targets")
++	    SET(_disabled 1)
++	ELSEIF(NOT EXISTS ${_file})
++	    M_MSG(${M_OFF} "Maintain setting file ${_file} is not found,  disable maintainer targets")
++	    SET(_disabled 1)
++	ENDIF(_file STREQUAL "")
++
++	IF(TARGET upload)
++	    M_MSG(${M_INFO1} "Maintain setting file ${_file} has been loaded before")
++	    SET(_disabled 1)
++	ENDIF(TARGET upload)
++
++	IF(_disabled EQUAL 0)
++	    INCLUDE(ManageVariable)
++	    INCLUDE(ManageVersion)
++	    INCLUDE(ManageSourceVersionControl)
++	    SETTING_FILE_GET_ALL_VARIABLES("${_file}")
++
++	    #===================================================================
++	    # Targets:
++	    ADD_CUSTOM_TARGET(upload
++		COMMENT "Uploading source to hosting services"
++		)
++
++	    IF("${SOURCE_VERSION_CONTROL}" STREQUAL "git")
++		MANAGE_SOURCE_VERSION_CONTROL_GIT()
++	    ELSEIF(SOURCE_VERSION_CONTROL STREQUAL "hg")
++		MANAGE_SOURCE_VERSION_CONTROL_HG()
++	    ELSEIF(SOURCE_VERSION_CONTROL STREQUAL "svn")
++		MANAGE_SOURCE_VERSION_CONTROL_SVN()
++	    ELSEIF(SOURCE_VERSION_CONTROL STREQUAL "cvs")
++		MANAGE_SOURCE_VERSION_CONTROL_CVS()
++	    ELSE("${SOURCE_VERSION_CONTROL}" STREQUAL "cvs")
++		M_MSG(${M_OFF} "SOURCE_VERSION_CONTROL=${SOURCE_VERSION_CONTROL} is not valid, Source verion control support disabled.")
++	    ENDIF("${SOURCE_VERSION_CONTROL}" STREQUAL "git")
++
++	    #
++	    ADD_DEPENDENCIES(upload tag)
++
++	    # Setting for each hosting service
++	    FOREACH(_hostService ${HOSTING_SERVICES})
++		ADD_CUSTOM_TARGET(upload_${_hostService})
++		ADD_DEPENDENCIES(upload upload_${_hostService})
++	    ENDFOREACH(_hostService ${HOSTING_SERVICES})
++	ENDIF(_disabled EQUAL 0)
++    ENDMACRO(MAINTAINER_SETTING_READ_FILE filename)
++
++ENDIF(NOT DEFINED _MANAGE_MAINTAINER_TARGETS_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageMessage.cmake ibus-chewing/Modules/ManageMessage.cmake
+--- ibus-chewing-orig/Modules/ManageMessage.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageMessage.cmake	2011-08-12 14:19:18.000000000 +0900
+@@ -0,0 +1,60 @@
++# - Manage the output and debug messages.
++# This module has macros that control how many messages to be shown
++# by defining the desire message level.
++#
++# Defined variables that represent verbose levels:
++#   1: M_FATAL - Critical error,Should stop immediately
++#   2: M_ERROR - Error that will Eventually fail
++#   3: M_WARN  - General Warning.
++#   4: M_OFF   - Optional functionalities are turned-off because requirement is not met.
++#   5: M_INFO1 - Info/debug message
++#   6: M_INFO2 - Info/debug message
++#   7: M_INFO3 - Info/debug message
++#
++# Read following variable:
++#   + MANAGE_MESSAGE_LEVEL: Message level in integer.
++#     Messages with greater level will be suppressed.
++#     Default is ${M_OFF}
++#   + MANAGE_MESSAGE_LABELS: Labels that printed in front of the message for
++#     corresponding message level.
++#     Default is "[Fatal] ;[Error] ;[Warn] ;[Off] ;[Info1] ;[Info2] ;[Info3] ")
++#
++# Define following macros:
++#   M_MSG(level msg)
++#   - Surpress the message if level is higher than MANAGE_MESSAGE_LEVEL
++#     Otherwise show the message.
++#     Arguments:
++#     + level: level of the message.
++#     + msg: Message to show.
++#
++
++
++IF(NOT DEFINED _MANAGE_MESSAGE_CMAKE_)
++    SET(_MANAGE_MESSAGE_CMAKE_ "DEFINED")
++    SET(M_FATAL 1)
++    SET(M_ERROR 2)
++    SET(M_WARN 3)
++    SET(M_OFF  4)
++    SET(M_INFO1 5)
++    SET(M_INFO2 6)
++    SET(M_INFO3 7)
++    IF(NOT DEFINED MANAGE_MESSAGE_LABELS)
++	SET(MANAGE_MESSAGE_LABELS
++	    "[Fatal] ;[Error] ;[Warn] ;[Off] ;[Info1] ;[Info2] ;[Info3] ")
++    ENDIF(NOT DEFINED MANAGE_MESSAGE_LABELS)
++
++    MACRO(M_MSG level msg)
++	SET(MANAGE_MESSAGE_LEVEL ${M_OFF} CACHE STRING "Message (Verbose) Level")
++	IF(${level} GREATER ${MANAGE_MESSAGE_LEVEL})
++	ELSE(${level} GREATER ${MANAGE_MESSAGE_LEVEL})
++	    MATH(EXPR _lvl ${level}-1)
++	    LIST(GET MANAGE_MESSAGE_LABELS ${_lvl} _label)
++	    IF(${level} EQUAL 1)
++		MESSAGE(FATAL_ERROR "${_label}${msg}")
++	    ELSE(${level} EQUAL 1)
++		MESSAGE("${_label}${msg}")
++	    ENDIF(${level} EQUAL 1)
++	ENDIF(${level} GREATER ${MANAGE_MESSAGE_LEVEL})
++    ENDMACRO(M_MSG level msg)
++ENDIF(NOT DEFINED _MANAGE_MESSAGE_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageRelease.cmake ibus-chewing/Modules/ManageRelease.cmake
+--- ibus-chewing-orig/Modules/ManageRelease.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageRelease.cmake	2011-09-16 16:53:17.000000000 +0900
+@@ -0,0 +1,95 @@
++# - Common macros targets for release chores.
++# This module provides common targets for release or post-release chores.
++#
++#  Defines following macros:
++#  MANAGE_RELEASE(maintainerSetting [UPLOAD [[[alias1 file1] alias2 file2] ...]])
++#  - Manage release by setting release, after release targets and
++#    files to be upload to hosting services and their alias.
++#    Arguments:
++#    + maintainerSetting: Maintainer setting file
++#    + alias, file: file to be upload and its alias.
++#      i.e. "make upload_<hostingService>_<alias>"
++#      will upload the file to hostingService.
++#    Defines following targets:
++#    + release: Do the release chores.
++#      Depends: upload, and any targets defined in RELEASE_TARGETS.
++#      Reads or define following variables:
++#      + RELEASE_TARGETS: Depended targets for release.
++#        Note that the sequence of the target does not guarantee the
++#        sequence of execution.
++#    + changelog_update: Update changelog by copying ChangeLog to ChangeLog.prev
++#      and RPM-ChangeLog to RPM-ChangeLog. This target should be execute before
++#      starting a new version.
++#    + after_release: Chores after release.
++#      This depends on changelog_update, after_release_commit, and
++#      after_release_push.
++#
++
++IF(NOT DEFINED _MANAGE_RELEASE_CMAKE_)
++    SET(_MANAGE_RELEASE_CMAKE_ "DEFINED")
++    INCLUDE(ManageMaintainerTargets)
++    MACRO(MANAGE_RELEASE maintainerSetting)
++	SET(_disabled 0)
++
++	IF(NOT TARGET load)
++	    MAINTAINER_SETTING_READ_FILE(${maintainerSetting})
++	    # If maintainer file is invalid,
++	    # then target upload does not exist
++	    IF(NOT TARGET upload)
++		M_MSG(${M_OFF} "ManageRelease: maintainer file is invalid, disable release targets" )
++		MAINTAINER_SETTING_READ_FILE()
++		SET(_disabled 1)
++	    ENDIF(NOT TARGET upload)
++	ENDIF(NOT TARGET load)
++
++	IF(_disabled EQUAL 0)
++	    ## Target: release
++	    ADD_CUSTOM_TARGET(release
++		COMMENT "Release a new version"
++		)
++	    SET_TARGET_PROPERTIES(release PROPERTIES EXISTS 1)
++
++	    ADD_DEPENDENCIES(release upload)
++
++	    IF(RELEASE_TARGETS)
++		ADD_DEPENDENCIES(release ${RELEASE_TARGETS})
++	    ENDIF(RELEASE_TARGETS)
++
++	    SET(_stage "NONE")
++	    FOREACH(_arg ${ARGN})
++		IF(_stage STREQUAL "NONE")
++		    IF(_arg STREQUAL "UPLOAD")
++			SET(_stage "NAME")
++		    ENDIF(_arg STREQUAL "UPLOAD")
++		ELSEIF(_stage STREQUAL "NAME")
++		    SET(_name ${_arg})
++		    SET(_stage "FILE")
++		ELSE(_stage STREQUAL "NONE")
++		    SET(_file ${_arg})
++		    MANAGE_MAINTAINER_TARGETS_UPLOAD(${_file}
++			FILE_ALIAS ${_name})
++		    SET(_stage "NAME")
++		ENDIF(_stage STREQUAL "NONE")
++	    ENDFOREACH(_arg ${ARGN})
++
++	    ## After release targets
++
++	    ADD_CUSTOM_TARGET(changelog_update
++		COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/ChangeLog ${CMAKE_SOURCE_DIR}/ChangeLog.prev
++		COMMAND ${CMAKE_COMMAND} -E copy ${RPM_BUILD_SPECS}/RPM-ChangeLog ${RPM_BUILD_SPECS}/RPM-ChangeLog.prev
++		DEPENDS ${CMAKE_SOURCE_DIR}/ChangeLog ${RPM_BUILD_SPECS}/RPM-ChangeLog
++		COMMENT "Changelogs are updated for next version."
++		)
++	    ADD_CUSTOM_TARGET(after_release)
++	    ADD_DEPENDENCIES(after_release after_release_push)
++	    ADD_DEPENDENCIES(after_release_push after_release_commit)
++	    ADD_DEPENDENCIES(after_release_commit changelog_update)
++	ENDIF(_disabled EQUAL 0)
++
++
++    ENDMACRO(MANAGE_RELEASE)
++
++
++
++ENDIF(NOT DEFINED _MANAGE_RELEASE_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageReleaseOnFedora.cmake ibus-chewing/Modules/ManageReleaseOnFedora.cmake
+--- ibus-chewing-orig/Modules/ManageReleaseOnFedora.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageReleaseOnFedora.cmake	2011-09-20 14:46:47.000000000 +0900
+@@ -0,0 +1,497 @@
++# - Fedora release tasks related to koji, fedpkg and bodhi
++#
++# This module provides convenient targets and macroes for scratch build,
++# submit, and build on koji, using the GIT infrastructure,
++# as well as bodhi update.
++# Since this module is mainly for Fedora developers/maintainers,
++# This module checks ~/.fedora-upload-ca.cert
++#
++# Includes:
++#   ManageMessage
++#   ManageSourceVersionControl
++#
++# Reads following variables:
++#   FEDORA_CANDIDATE_PREFERRED:
++#     Set to "0" to build against original repo (without update).
++#   EPEL_CANDIDATE_PREFERRED:
++#     Set to "0" to build against original repo (without update).
++# Defines following variable:
++#   FEDORA_RAWHIDE_TAG: Koji tag for rawhide.
++#   FEDORA_NEXT_RELEASE: Number of Fedora upcoming release, e.g. 16
++#   FEDORA_NEXT_RELEASE_TAG: Fedora's upcoming release. e.g. f16
++#   FEDORA_LATEST_RELEASE: Number of Fedora latest release, e.g. 15
++#   FEDORA_PREVIOUS_RELEASE: Number of Fedora latest release, e.g. 14
++#   FEDORA_SUPPORTED_RELEASE_TAGS: Releases that are currently supported.
++#   FEDORA_CURRENT_RELEASE_TAGS: Releases that are recommend to build against.
++#     It is essentially FEDORA_RAWHIDE_TAG + FEDORA_NEXT_RELEASE_TAG
++#                       + FEDORA_SUPPORTED_RELEASE_TAGS.
++# Defines following macros:
++#   RELEASE_ON_FEDORA(srpm [TAGS [tag1 [tag2 ...]])
++#   - This call USE_FEDPKG and USE_BODHI and set the corresponding
++#     dependencies. This macro is recommended than calling USE_FEDPKG and
++#     USE_BODHI directly.
++#     Defines following targets:
++#     + release_on_fedora: Make necessary steps for releasing on fedora,
++#       such as making source file tarballs, source rpms, build with fedpkg
++#       and upload to bodhi.
++#
++#   USE_FEDPKG(srpm [NOKOJI_SCRATCH_BUILD] [TAGS [tag1 [tag2 ...]])
++#   - Use fedpkg targets if ~/.fedora-upload-ca.cert exists.
++#     If ~/.fedora-upload-ca.cert does not exists, this marcos run as an empty
++#     macro.
++#     Argument:
++#     + srpm: srpm file with path.
++#     + NOKOJI_SCRATCH_BUILD: Don't use koji_scratch_build before commit with
++#       fedpkg.
++#     + tag1, tag2...: Dist tags such as f14, f13, el5.
++#       if no defined, then tags in FEDORA_CURRENT_RELEASE_TAGS are used.
++#     Reads following variables:
++#     + FEDORA_RELEASE_TAGS: (optional) Release to be built.
++#       Note this override the setting from [tag1 [tag2 ...].
++#       Thus, this variable can be defined in RELEASE.txt to specify the
++#       dist tags to be built.
++#     + FEDPKG_DIR: Directory for fedpkg checkout.
++#       Default: FedPkg.
++#     Defines following targets:
++#     + fedpkg_scratch_build: Perform scratch build with fedpkg.
++#     + fedpkg_submit: Submit build with fedpkg.
++#     + fedpkg_build: Perform build with fedpkg.
++#     + fedpkg_update: Update with fedpkg.
++#     + koji_scratch_build: Sent srpm to Koji for scratch build
++#
++#   USE_BODHI([KARMA karmaValue] [TAGS [tag1 [tag2 ...]]  )
++#   - Use bodhi targets with bodhi command line client.
++#     Argument:
++#     + KARMA karmaValue: Set the karma threshold. Default is 3.
++#     + TAGS tag1, ....: Dist Tags for submission. Accepts formats like f14,
++#        fc14, el6.
++#     Reads following variables:
++#     + BODHI_UPDATE_TYPE: Type of update. Default is "bugfix".
++#     + BODHI_USER: Login username for bodhi (for -u).
++#     + FEDORA_CURRENT_RELEASE_TAGS: If TAGS is not defined, then it will be
++#       use as default tags.
++#     + SUGGEST_REBOOT: Whether this update require reboot to take effect.
++#       Default is "False".
++#     Defines following targets:
++#     + bodhi_new: Send a new release to bodhi.
++#
++
++IF(NOT DEFINED _MANAGE_RELEASE_ON_FEDORA_)
++    SET(_MANAGE_RELEASE_ON_FEDORA_ "DEFINED")
++    SET(FEDORA_EPEL_RELEASE_TAGS el6 el5)
++    SET(FEDORA_RAWHIDE_TAG rawhide)
++    SET(FEDORA_NEXT_RELEASE 16)
++    SET(FEDORA_NEXT_RELEASE_TAGS f${FEDORA_NEXT_RELEASE})
++    MATH(EXPR FEDORA_LATEST_RELEASE ${FEDORA_NEXT_RELEASE}-1)
++    MATH(EXPR FEDORA_PREVIOUS_RELEASE ${FEDORA_LATEST_RELEASE}-1)
++    SET(FEDORA_SUPPORTED_RELEASE_TAGS "f${FEDORA_LATEST_RELEASE};f${FEDORA_PREVIOUS_RELEASE}")
++    SET(FEDORA_CURRENT_RELEASE_TAGS ${FEDORA_RAWHIDE_TAG}
++	${FEDORA_NEXT_RELEASE_TAGS} ${FEDORA_SUPPORTED_RELEASE_TAGS})
++    IF("${FEDPKG_DIR}" STREQUAL "")
++	SET(FEDPKG_DIR "FedPkg")
++    ENDIF("${FEDPKG_DIR}" STREQUAL "")
++
++    IF(NOT DEFINED FEDORA_KOJI_TAG_POSTFIX)
++	SET(FEDORA_KOJI_TAG_POSTFIX "")
++    ENDIF(NOT DEFINED FEDORA_KOJI_TAG_POSTFIX)
++
++    IF(NOT DEFINED EPEL_KOJI_TAG_POSTFIX)
++	SET(EPEL_KOJI_TAG_POSTFIX "-testing-candidate")
++    ENDIF(NOT DEFINED EPEL_KOJI_TAG_POSTFIX)
++
++    SET(_bodhi_template_file "bodhi.NO_PACK.template")
++    SET(PACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES} "/${FEDPKG_DIR}/")
++
++    # Need the definition of source version control first, as we need to check tag file.
++    INCLUDE(ManageSourceVersionControl)
++    INCLUDE(ManageMessage)
++
++    SET(_FEDORA_DIST_TAGS "")
++
++    MACRO(_manange_release_on_fedora_dist_convert_to_koji_target
++	    var dist)
++	SET(_dist_prefix "dist-")
++	SET(_dist_postfix "")
++	IF("${dist}" MATCHES "^el")
++	    # EPEL dists
++	    STRING(REGEX REPLACE "el\([0-9]+\)" "\\1" _relver  "${dist}")
++	    IF(NOT "${EPEL_CANDIDATE_PREFERRED}" STREQUAL "0")
++		SET(_dist_postfix "-testing-candidate")
++	    ENDIF(NOT "${EPEL_CANDIDATE_PREFERRED}" STREQUAL "0")
++	    SET(${var} "${_dist_prefix}${_relver}E-epel${_dist_postfix}")
++	ELSEIF("${dist}" MATCHES "^f")
++	    # Fedora dists
++	    STRING(REGEX REPLACE "f\([0-9]+\)" "\\1" _relver  "${dist}")
++	    IF(_relver GREATER 15)
++		SET(_dist_prefix "")
++	    ENDIF(_relver GREATER 15)
++	    IF(NOT "${FEDORA_CANDIDATE_PREFERRED}" STREQUAL "0")
++		LIST(FIND FEDORA_SUPPORTED_RELEASE_TAGS "${dist}" _index)
++		IF(_index GREATER -1)
++		    SET(_dist_postfix "-updates-candidate")
++		ENDIF(_index GREATER -1)
++	    ENDIF(NOT "${FEDORA_CANDIDATE_PREFERRED}" STREQUAL "0")
++	    SET(${var} "${_dist_prefix}${dist}${_dist_postfix}")
++	ELSE("${dist}" MATCHES "^el")
++	    # Perhaps rawhide, or other custom targets
++	    SET(${var} "${_dist_prefix}${dist}")
++	ENDIF("${dist}" MATCHES "^el")
++    ENDMACRO(_manange_release_on_fedora_dist_convert_to_koji_target
++	kojiTarget dist)
++
++    MACRO(_manange_release_on_fedora_parse_args)
++	SET(_FEDORA_DIST_TAGS "")
++	SET(_FEDORA_KARMA "3")
++	SET(_FEDORA_AUTO_KARMA "True")
++	SET(_FEDORA_KOJI_SCRATCH 1)
++	SET(_FEDORA_DIST_TAGS "")
++
++	SET(_stage "")
++	FOREACH(_arg ${ARGN})
++	    IF(_arg STREQUAL "NOKOJI_SCRATCH_BUILD")
++		SET(_FEDORA_KOJI_SCRATCH 0)
++	    ELSEIF(_arg STREQUAL "KARMA")
++		SET(_stage "KARMA")
++	    ELSEIF(_arg STREQUAL "TAGS")
++		# No need to further parsing TAGS, as FEDORA_RELEASE_TAGS
++		# override whatever specified after TAGS
++		IF(NOT "${FEDORA_RELEASE_TAGS}" STREQUAL "")
++		    BREAK()
++		ENDIF(NOT "${FEDORA_RELEASE_TAGS}" STREQUAL "")
++		SET(_stage "TAGS")
++	    ELSE(_arg STREQUAL "NOKOJI_SCRATCH_BUILD")
++		IF(_stage STREQUAL "KARMA")
++		    IF(_arg STREQUAL "0")
++			SET(_FEDORA_AUTO_KARMA "False")
++		    ENDIF(_arg STREQUAL "0")
++		    SET(_FEDORA_KARMA ${_arg})
++		ELSEIF(_stage STREQUAL "TAGS")
++		    LIST(APPEND _FEDORA_DIST_TAGS "${_arg}")
++		ELSE(_stage STREQUAL "TAGS")
++		    SET(_FEDORA_SRPM ${_arg})
++		ENDIF(_stage STREQUAL "KARMA")
++	    ENDIF(_arg STREQUAL "NOKOJI_SCRATCH_BUILD")
++	ENDFOREACH(_arg ${ARGN})
++	IF(NOT "${FEDORA_RELEASE_TAGS}" STREQUAL "")
++	    SET(_FEDORA_DIST_TAGS ${FEDORA_RELEASE_TAGS})
++	ELSEIF(_FEDORA_DIST_TAGS STREQUAL "")
++	    LIST(APPEND _FEDORA_DIST_TAGS ${FEDORA_CURRENT_RELEASE_TAGS})
++	ENDIF(NOT "${FEDORA_RELEASE_TAGS}" STREQUAL "")
++
++	SET(_FEDORA_STABLE_KARMA "${_FEDORA_KARMA}")
++	SET(_FEDORA_UNSTABLE_KARMA "-${_FEDORA_KARMA}")
++
++    ENDMACRO(_manange_release_on_fedora_parse_args)
++
++    MACRO(USE_KOJI srpm)
++	SET(_dependencies_missing 0)
++	FIND_PROGRAM(KOJI_CMD koji)
++	IF(KOJI_CMD STREQUAL "KOJI_CMD-NOTFOUND")
++	    M_MSG(${M_OFF} "Program koji is not found! Koji support disabled.")
++	    SET(_dependencies_missing 1)
++	ENDIF(KOJI_CMD STREQUAL "KOJI_CMD-NOTFOUND")
++
++	IF(_dependencies_missing EQUAL 0)
++	    IF(_FEDORA_DIST_TAGS STREQUAL "")
++		_manange_release_on_fedora_parse_args(${ARGN})
++	    ENDIF(_FEDORA_DIST_TAGS STREQUAL "")
++
++	    IF(_FEDORA_KOJI_SCRATCH EQUAL 1)
++		ADD_CUSTOM_TARGET(koji_scratch_build
++		    COMMENT "koji scratch builds"
++		    )
++
++		# Ensure package build in koji before tag
++		ADD_DEPENDENCIES(tag koji_scratch_build)
++	    ENDIF(_FEDORA_KOJI_SCRATCH EQUAL 1)
++
++	    FOREACH(_tag ${_FEDORA_DIST_TAGS})
++		_manange_release_on_fedora_dist_convert_to_koji_target(_branch ${_tag})
++		IF(_FEDORA_KOJI_SCRATCH EQUAL 1)
++		    SET(_scratch_build_stamp
++			"${CMAKE_FEDORA_TMP_DIR}/${PRJ_VER}_koji_scratch_build_${_tag}")
++		    ADD_CUSTOM_TARGET(koji_scratch_build_${_tag}
++			DEPENDS ${_scratch_build_stamp}
++			)
++
++		    ADD_CUSTOM_COMMAND(OUTPUT ${_scratch_build_stamp}
++			COMMAND ${KOJI_CMD} build --scratch ${_branch} ${srpm}
++			COMMAND ${CMAKE_COMMAND} -E touch ${_scratch_build_stamp}
++			DEPENDS ${CMAKE_FEDORA_TMP_DIR} ${srpm}
++			COMMENT "koji scratch build on ${_branch} with ${srpm}"
++			)
++		    ADD_DEPENDENCIES(koji_scratch_build_${_tag} rpmlint)
++		    ADD_DEPENDENCIES(koji_scratch_build koji_scratch_build_${_tag})
++		ENDIF(_FEDORA_KOJI_SCRATCH EQUAL 1)
++	    ENDFOREACH(_tag ${_FEDORA_DIST_TAGS})
++	ENDIF(_dependencies_missing EQUAL 0)
++    ENDMACRO(USE_KOJI srpm)
++
++    MACRO(_use_fedpkg_make_targets srpm)
++	#MESSAGE("_FEDORA_DIST_TAGS=${_FEDORA_DIST_TAGS}")
++	#Commit summary
++	IF (DEFINED CHANGE_SUMMARY)
++	    SET (COMMIT_MSG  "-m \"${CHANGE_SUMMARY}\"")
++	ELSE(DEFINED CHANGE_SUMMARY)
++	    SET (COMMIT_MSG  "-m \"On releasing ${PRJ_VER}-${PRJ_RELEASE_NO}\"")
++	ENDIF(DEFINED CHANGE_SUMMARY)
++
++	SET(_fedpkg_tag_path_abs_prefix
++	    "${FEDPKG_WORKDIR}/.git/refs/tags")
++	FOREACH(_tag ${_FEDORA_DIST_TAGS})
++	    IF(_tag STREQUAL FEDORA_RAWHIDE_TAG)
++		SET(_branch "")
++	    ELSEIF(_tag STREQUAL FEDORA_NEXT_RELEASE_TAG)
++		SET(_branch "master")
++	    ELSE(_tag STREQUAL FEDORA_RAWHIDE_TAG)
++		SET(_branch "${_tag}")
++	    ENDIF(_tag STREQUAL FEDORA_RAWHIDE_TAG)
++
++	    IF(NOT _branch STREQUAL "")
++		_use_bodhi_convert_tag(_bodhi_tag "${_tag}")
++		SET(_fedpkg_tag_name_prefix "${PRJ_VER}-${PRJ_RELEASE_NO}.${_bodhi_tag}")
++		#MESSAGE("_fedpkg_tag_name_prefix=${_fedpkg_tag_name_prefix}")
++		SET(_scratch_build_stamp
++		    "${CMAKE_FEDORA_TMP_DIR}/${PRJ_VER}_scratch_build_${_tag}")
++
++
++		ADD_CUSTOM_TARGET(fedpkg_scratch_build_${_tag}
++		    DEPENDS ${_scratch_build_stamp}
++		    )
++
++		ADD_CUSTOM_COMMAND(OUTPUT ${_scratch_build_stamp}
++		    COMMAND ${FEDPKG_CMD} switch-branch ${_branch}
++		    COMMAND ${FEDPKG_CMD} scratch-build --srpm ${srpm}
++		    COMMAND ${CMAKE_COMMAND} -E touch ${_scratch_build_stamp}
++	    	    DEPENDS ${CMAKE_FEDORA_TMP_DIR} ${srpm}
++		    WORKING_DIRECTORY ${FEDPKG_WORKDIR}
++		    COMMENT "fedpkg scratch build on ${_branch} with ${srpm}"
++		    )
++		ADD_DEPENDENCIES(fedpkg_scratch_build_${_tag} rpmlint)
++		ADD_DEPENDENCIES(fedpkg_scratch_build fedpkg_scratch_build_${_tag})
++
++		# koji_scratch_build is preferred before tag,
++		# otherwise, use fedpkg_scratch_build instead
++		IF(NOT TARGET koji_scratch_build)
++		    ADD_DEPENDENCIES(tag fedpkg_scratch_build)
++		ENDIF(NOT TARGET koji_scratch_build)
++
++		## fedpkg import
++		SET(_import_opt "")
++		IF(NOT _tag STREQUAL FEDORA_RAWHIDE_TAG)
++		    SET(_import_opt "-b ${_tag}")
++		ENDIF(NOT _tag STREQUAL FEDORA_RAWHIDE_TAG)
++
++
++		## fedpkg commit and push
++		# Depends on tag file instead of target "tag"
++		# To avoid excessive scratch build and rpmlint
++		SET(_commit_opt --push --tag "${COMMIT_MSG}")
++		SET(_fedpkg_tag_name_committed
++		    "${_fedpkg_tag_name_prefix}.committed")
++		ADD_CUSTOM_COMMAND(OUTPUT
++		    ${_fedpkg_tag_path_abs_prefix}/${_fedpkg_tag_name_committed}
++		    COMMAND ${FEDPKG_CMD} switch-branch ${_branch}
++		    COMMAND ${FEDPKG_CMD} pull
++		    COMMAND ${FEDPKG_CMD} import ${_import_opt} ${srpm}
++		    COMMAND ${FEDPKG_CMD} commit ${_commit_opt}
++		    COMMAND git push --tags
++		    DEPENDS ${FEDPKG_WORKDIR} ${MANAGE_SOURCE_VERSION_CONTROL_TAG_FILE} ${srpm}
++		    WORKING_DIRECTORY ${FEDPKG_WORKDIR}
++		    COMMENT "fedpkg commit on ${_branch} with ${srpm}"
++		    VERBATIM
++		    )
++
++		ADD_CUSTOM_TARGET(fedpkg_commit_${_tag}
++		    DEPENDS ${_fedpkg_tag_path_abs_prefix}/${_fedpkg_tag_name_committed}
++		    )
++		ADD_DEPENDENCIES(fedpkg_commit fedpkg_commit_${_tag})
++
++		## fedpkg build
++		SET(_fedpkg_tag_name_built
++		    "${_fedpkg_tag_name_prefix}.built")
++		ADD_CUSTOM_COMMAND(OUTPUT
++		    ${_fedpkg_tag_path_abs_prefix}/${_fedpkg_tag_name_built}
++		    COMMAND ${FEDPKG_CMD} switch-branch ${_branch}
++		    COMMAND ${FEDPKG_CMD} build
++		    COMMAND git tag -a -m "${_fedpkg_tag_name_prefix} built"
++		    ${_fedpkg_tag_name_built}
++		    COMMAND git push --tags
++		    WORKING_DIRECTORY ${FEDPKG_WORKDIR}
++		    COMMENT "fedpkg build on ${_branch}"
++		    VERBATIM
++		    )
++
++		ADD_CUSTOM_TARGET(fedpkg_build_${_tag}
++		    DEPENDS ${_fedpkg_tag_path_abs_prefix}/${_fedpkg_tag_name_built}
++		    )
++
++		ADD_DEPENDENCIES(fedpkg_build_${_tag} fedpkg_commit_${_tag})
++		ADD_DEPENDENCIES(fedpkg_build fedpkg_build_${_tag})
++
++		ADD_CUSTOM_TARGET(fedpkg_update_${_tag}
++		    COMMAND ${FEDPKG_CMD} update
++		    WORKING_DIRECTORY ${FEDPKG_WORKDIR}/${PROJECT_NAME}
++		    DEPENDS ${_first_tag_path}
++		    COMMENT "fedpkg update on ${_branch} with ${srpm}"
++		    )
++		ADD_DEPENDENCIES(fedpkg_update_${_tag} fedpkg_build_${_tag})
++		ADD_DEPENDENCIES(fedpkg_update fedpkg_update_${_tag})
++	    ENDIF(NOT _branch STREQUAL "")
++	ENDFOREACH(_tag ${_FEDORA_DIST_TAGS})
++    ENDMACRO(_use_fedpkg_make_targets srpm)
++
++    MACRO(USE_FEDPKG srpm)
++	SET(_dependencies_missing 0)
++
++	IF(NOT EXISTS $ENV{HOME}/.fedora-upload-ca.cert)
++	    M_MSG(${M_OFF}
++		"\$HOME/.fedora-upload-ca.cert not found, fedpkg support disabled")
++	    SET(_dependencies_missing 1)
++	ENDIF(NOT EXISTS $ENV{HOME}/.fedora-upload-ca.cert)
++
++	FIND_PROGRAM(FEDPKG_CMD fedpkg)
++	IF(FEDPKG_CMD STREQUAL "FEDPKG_CMD-NOTFOUND")
++	    M_MSG(${M_OFF} "Program fedpkg is not found! fedpkg support disabled.")
++	    SET(_dependencies_missing 1)
++	ENDIF(FEDPKG_CMD STREQUAL "FEDPKG_CMD-NOTFOUND")
++
++	IF(_dependencies_missing EQUAL 0)
++	    IF(_FEDORA_DIST_TAGS STREQUAL "")
++		_manange_release_on_fedora_parse_args(${ARGN})
++	    ENDIF(_FEDORA_DIST_TAGS STREQUAL "")
++
++	    SET(FEDPKG_DIR_ABS ${CMAKE_BINARY_DIR}/${FEDPKG_DIR})
++	    SET(FEDPKG_WORKDIR ${FEDPKG_DIR_ABS}/${PROJECT_NAME})
++	    ADD_CUSTOM_COMMAND(OUTPUT ${FEDPKG_DIR_ABS}
++		COMMAND mkdir -p ${FEDPKG_DIR_ABS}
++		)
++
++	    ADD_CUSTOM_COMMAND(OUTPUT ${FEDPKG_WORKDIR}
++		COMMAND ${FEDPKG_CMD} clone ${PROJECT_NAME}
++		DEPENDS ${FEDPKG_DIR_ABS}
++		WORKING_DIRECTORY ${FEDPKG_DIR_ABS}
++		)
++
++	    ADD_CUSTOM_TARGET(fedpkg_clone
++		DEPENDS ${FEDPKG_WORKDIR}
++		)
++
++	    ADD_CUSTOM_TARGET(fedpkg_scratch_build
++		COMMENT "fedpkg scratch build"
++		)
++	    ADD_CUSTOM_TARGET(fedpkg_import
++		COMMENT "fedpkg import"
++		)
++	    ADD_CUSTOM_TARGET(fedpkg_commit
++		COMMENT "fedpkg commit and push"
++		)
++	    ADD_CUSTOM_TARGET(fedpkg_build
++		COMMENT "fedpkg build"
++		)
++
++	    ADD_CUSTOM_TARGET(fedpkg_update
++		COMMENT "fedpkg update"
++		)
++	    ## Make target commands for the released dist
++	    _use_fedpkg_make_targets("${srpm}")
++	ENDIF(_dependencies_missing EQUAL 0)
++    ENDMACRO(USE_FEDPKG srpm)
++
++    MACRO(_use_bodhi_convert_tag tag_out tag_in)
++	STRING(REGEX REPLACE "f([0-9]+)" "fc\\1" _tag_replace "${tag_in}")
++	IF(_tag_replace STREQUAL "")
++	    SET(${tag_out} ${tag_in})
++	ELSE(_tag_replace STREQUAL "")
++	    SET(${tag_out} ${_tag_replace})
++	ENDIF(_tag_replace STREQUAL "")
++    ENDMACRO(_use_bodhi_convert_tag tag_out tag_in)
++
++    MACRO(_append_notes _file)
++	STRING(REGEX REPLACE "\n" "\n " _notes "${CHANGELOG_ITEMS}")
++	FILE(APPEND ${_file} "notes=${_notes}\n\n")
++    ENDMACRO(_append_notes _file)
++
++    MACRO(USE_BODHI)
++	# Bodhi does not really require .fedora-upload-ca.cert
++	# But since this macro is meant for package maintainers,
++	# so..
++	SET(_dependencies_missing 0)
++	IF(NOT EXISTS $ENV{HOME}/.fedora-upload-ca.cert)
++	    M_MSG(${M_OFF}
++		"\$HOME/.fedora-upload-ca.cert not found, bodhi support disabled")
++	    SET(_dependencies_missing 1)
++	ENDIF(NOT EXISTS $ENV{HOME}/.fedora-upload-ca.cert)
++	FIND_PROGRAM(BODHI_CMD bodhi)
++	IF(BODHI_CMD STREQUAL "BODHI_CMD-NOTFOUND")
++	    M_MSG(${M_OFF} "Program bodhi is not found! bodhi support disabled.")
++	    SET(_dependencies_missing 1)
++	ENDIF(BODHI_CMD STREQUAL "BODHI_CMD-NOTFOUND")
++
++	IF(_dependencies_missing EQUAL 0)
++	    IF(_FEDORA_STABLE_KARMA STREQUAL "")
++		_manange_release_on_fedora_parse_args(${ARGN})
++	    ENDIF(_FEDORA_STABLE_KARMA STREQUAL "")
++
++	    FILE(REMOVE ${_bodhi_template_file})
++	    FOREACH(_tag ${_FEDORA_DIST_TAGS})
++		IF(NOT _tag STREQUAL ${FEDORA_RAWHIDE_TAG})
++		    _use_bodhi_convert_tag(_bodhi_tag ${_tag})
++
++		    FILE(APPEND ${_bodhi_template_file} "[${PROJECT_NAME}-${PRJ_VER}-${PRJ_RELEASE_NO}.${_bodhi_tag}]\n\n")
++
++		    IF(BODHI_UPDATE_TYPE)
++			FILE(APPEND ${_bodhi_template_file} "type=${BODHI_UPDATE_TYPE}\n\n")
++		    ELSE(BODHI_UPDATE_TYPE)
++			FILE(APPEND ${_bodhi_template_file} "type=bugfix\n\n")
++		    ENDIF(BODHI_UPDATE_TYPE)
++
++		    FILE(APPEND ${_bodhi_template_file} "request=testing\n")
++		    FILE(APPEND ${_bodhi_template_file} "bugs=${REDHAT_BUGZILLA}\n")
++
++		    _append_notes(${_bodhi_template_file})
++
++		    FILE(APPEND ${_bodhi_template_file} "autokarma=${_FEDORA_AUTO_KARMA}\n")
++		    FILE(APPEND ${_bodhi_template_file} "stable_karma=${_FEDORA_STABLE_KARMA}\n")
++		    FILE(APPEND ${_bodhi_template_file} "unstable_karma=${_FEDORA_UNSTABLE_KARMA}\n")
++		    FILE(APPEND ${_bodhi_template_file} "close_bugs=True\n")
++
++		    IF(SUGGEST_REBOOT)
++			FILE(APPEND ${_bodhi_template_file} "suggest_reboot=True\n")
++		    ELSE(SUGGEST_REBOOT)
++			FILE(APPEND ${_bodhi_template_file} "suggest_reboot=False\n\n")
++		    ENDIF(SUGGEST_REBOOT)
++		ENDIF(NOT _tag STREQUAL ${FEDORA_RAWHIDE_TAG})
++	    ENDFOREACH(_tag ${_FEDORA_DIST_TAGS})
++
++	    IF(BODHI_USER)
++		SET(_bodhi_login "-u ${BODHI_USER}")
++	    ENDIF(BODHI_USER)
++
++	    ADD_CUSTOM_TARGET(bodhi_new
++		COMMAND ${BODHI_CMD} --new ${_bodhi_login} --file ${_bodhi_template_file}
++		COMMENT "Send new package to bodhi"
++		VERBATIM
++		)
++
++	    IF(TARGET fedpkg_build)
++		ADD_DEPENDENCIES(bodhi_new fedpkg_build)
++	    ENDIF(TARGET fedpkg_build)
++	ENDIF(_dependencies_missing EQUAL 0)
++    ENDMACRO(USE_BODHI)
++
++    MACRO(RELEASE_ON_FEDORA srpm)
++	IF(TARGET release)
++	    USE_KOJI(${srpm} ${ARGN})
++	    USE_FEDPKG(${srpm} ${ARGN})
++	    USE_BODHI(${ARGN})
++	    ADD_CUSTOM_TARGET(release_on_fedora)
++	    ADD_DEPENDENCIES(release release_on_fedora)
++	    ADD_DEPENDENCIES(release_on_fedora bodhi_new)
++	ELSE(TARGET release)
++	    M_MSG(${M_OFF} "ManageReleaseOnFedora: maintainer file is invalid, disable release targets" )
++	ENDIF(TARGET release)
++    ENDMACRO(RELEASE_ON_FEDORA srpm)
++
++ENDIF(NOT DEFINED _MANAGE_RELEASE_ON_FEDORA_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageSourceVersionControl.cmake ibus-chewing/Modules/ManageSourceVersionControl.cmake
+--- ibus-chewing-orig/Modules/ManageSourceVersionControl.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageSourceVersionControl.cmake	2011-08-04 12:40:13.000000000 +0900
+@@ -0,0 +1,153 @@
++# - Add source version control targets.
++# Macros for build Git, Mercurial, SVN and CVS specific targets.
++# These macros are called internally.
++# However, thes macros provides following targets which may be useful:
++#  - tag: Tag the release using the selected source version control.
++#
++# Included by:
++#    ManageMaintainerTargets
++#    ManageReleaseOnFedora
++#
++#
++# Define following macros:
++#   MANAGE_SOURCE_VERSION_CONTROL_GIT()
++#   - Use Git as source version control.
++#     Reads following variables:
++#     + PRJ_VER: Project version.
++#     Defines following variables:
++#     + MANAGE_SOURCE_VERSION_CONTROL_TAG_FILE: File to be generated after tag.
++#
++#   MANAGE_SOURCE_VERSION_CONTROL_HG()
++#   - Use Mercurial as source version control.
++#     Reads following variables:
++#     + PRJ_VER: Project version.
++#
++#   MANAGE_SOURCE_VERSION_CONTROL_SVN()
++#   - Use SVN as source version control.
++#     Reads following variables:
++#     + PRJ_VER: Project version.
++#
++#   MANAGE_SOURCE_VERSION_CONTROL_CVS()
++#   - Use CVS as source version control.
++#     Reads following variables:
++#     + PRJ_VER: Project version.
++#
++
++IF(NOT DEFINED _MANAGE_SOURCE_VERSION_CONTROL_CMAKE_)
++    SET(_MANAGE_SOURCE_VERSION_CONTROL_CMAKE_ "DEFINED")
++    SET(after_release_message "After version ${PRJ_VER}")
++
++    ## Common action
++    MACRO(MANAGE_SOURCE_VERSION_CONTROL_COMMON)
++	ADD_DEPENDENCIES(tag version_check)
++    ENDMACRO(MANAGE_SOURCE_VERSION_CONTROL_COMMON)
++
++    MACRO(MANAGE_SOURCE_VERSION_CONTROL_GIT)
++	SET(MANAGE_SOURCE_VERSION_CONTROL_TAG_FILE ${CMAKE_SOURCE_DIR}/.git/refs/tags/${PRJ_VER})
++
++	ADD_CUSTOM_TARGET(after_release_commit
++	    COMMAND git commit -a -m "${after_release_message}"
++	    COMMENT "After release ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(after_release_push
++	    COMMAND git push
++	    COMMAND git push --tags
++	    COMMENT "Git push tags"
++	    VERBATIM
++	    )
++
++	SET(_force_commit_cmd "if git commit -a -m 'On release ${PRJ_VER}'"
++	    "then echo 'Commit uncommitted changes.'"
++	    "else echo 'Nothing new to commit.'"
++	    "fi")
++
++	ADD_CUSTOM_TARGET(force_commit
++	    COMMAND eval "${_force_commit_cmd}"
++	    COMMENT "Force commit uncommitted changes"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(tag
++	    DEPENDS ${MANAGE_SOURCE_VERSION_CONTROL_TAG_FILE}
++	    )
++
++	ADD_DEPENDENCIES(tag force_commit)
++
++	ADD_CUSTOM_COMMAND(OUTPUT ${MANAGE_SOURCE_VERSION_CONTROL_TAG_FILE}
++	    COMMAND git tag -a -m "${CHANGE_SUMMARY}" "${PRJ_VER}" HEAD
++	    COMMENT "Tagging the source as ver ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++
++	MANAGE_SOURCE_VERSION_CONTROL_COMMON()
++    ENDMACRO(MANAGE_SOURCE_VERSION_CONTROL_GIT)
++
++    MACRO(MANAGE_SOURCE_VERSION_CONTROL_HG)
++	ADD_CUSTOM_TARGET(after_release_commit
++	    COMMAND hg commit --m "${after_release_message}"
++	    COMMENT "Afer release ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(after_release_push
++	    COMMAND hg push
++	    COMMENT "Mercurial push tags"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(tag
++	    COMMAND hg tag -m "${CHANGE_SUMMARY}" "${PRJ_VER}"
++	    COMMENT "Tagging the source as ver ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	MANAGE_SOURCE_VERSION_CONTROL_COMMON()
++    ENDMACRO(MANAGE_SOURCE_VERSION_CONTROL_HG)
++
++    MACRO(MANAGE_SOURCE_VERSION_CONTROL_SVN)
++	ADD_CUSTOM_TARGET(after_release_commit
++	    COMMAND svn commit -m "${after_release_message}"
++	    COMMENT "Afer release ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(after_release_push
++	    COMMENT "SVN push is done at commit"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(tag
++	    COMMAND svn copy "${SOURCE_BASE_URL}/trunk" "${SOURCE_BASE_URL}/tags/${PRJ_VER}" -m "${CHANGE_SUMMARY}"
++	    COMMENT "Tagging the source as ver ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	MANAGE_SOURCE_VERSION_CONTROL_COMMON()
++    ENDMACRO(MANAGE_SOURCE_VERSION_CONTROL_SVN)
++
++    MACRO(MANAGE_SOURCE_VERSION_CONTROL_CVS)
++	ADD_CUSTOM_TARGET(after_release_commit
++	    COMMAND svn commit -m "${after_release_message}"
++	    COMMENT "Afer release ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(after_release_push
++	    COMMENT "SVN push is done at commit"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(tag
++	    COMMAND cvs tag "${PRJ_VER}"
++	    COMMENT "Tagging the source as ver ${PRJ_VER}"
++	    VERBATIM
++	    )
++
++	MANAGE_SOURCE_VERSION_CONTROL_COMMON()
++    ENDMACRO(MANAGE_SOURCE_VERSION_CONTROL_CVS)
++
++ENDIF(NOT DEFINED _MANAGE_SOURCE_VERSION_CONTROL_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageString.cmake ibus-chewing/Modules/ManageString.cmake
+--- ibus-chewing-orig/Modules/ManageString.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageString.cmake	2011-09-02 09:03:24.000000000 +0900
+@@ -0,0 +1,307 @@
++# - Collection of String utility macros.
++#
++# Included by:
++#   ManageVarible
++#
++# Defines the following macros:
++#   STRING_TRIM(var str [NOUNQUOTE])
++#   - Trim a string by removing the leading and trailing spaces,
++#     just like STRING(STRIP ...) in CMake 2.6 and later.
++#     This macro is needed as CMake 2.4 does not support STRING(STRIP ..)
++#     This macro also remove quote and double quote marks around the string,
++#     unless NOUNQUOTE is defined.
++#     * Parameters:
++#       + var: A variable that stores the result.
++#       + str: A string.
++#       + NOUNQUOTE: (Optional) do not remove the double quote mark around the string.
++#
++#   STRING_UNQUOTE(var str)
++#   - Remove double quote marks and quote marks around a string.
++#     If the string is not quoted, then content of str is copied to var
++#     * Parameters:
++#       + var: A variable that stores the result.
++#       + str: A string.
++#
++#   STRING_JOIN(var delimiter str_list [str...])
++#   - Concatenate strings, with delimiter inserted between strings.
++#     * Parameters:
++#       + var: A variable that stores the result.
++#       + str_list: A list of string.
++#       + str: (Optional) more string to be join.
++#
++#   STRING_SPLIT(var delimiter str [NOESCAPE_SEMICOLON])
++#   - Split a string into a list using a delimiter, which can be in 1 or more
++#     characters long.
++#     * Parameters:
++#       + var: A variable that stores the result.
++#       + delimiter: To separate a string.
++#       + str: A string.
++#       + NOESCAPE_SEMICOLON: (Optional) Do not escape semicolons.
++#
++
++IF(NOT DEFINED _MANAGE_STRING_CMAKE_)
++    SET(_MANAGE_STRING_CMAKE_ "DEFINED")
++
++    # Return (index of lefttmost non match character)
++    # Return _strLen if all characters matches regex
++    FUNCTION(STRING_LEFTMOST_NOTMATCH_INDEX var str regex)
++	STRING(LENGTH "${str}" _strLen)
++	SET(_index 0)
++	SET(_ret ${_strLen})
++	WHILE(_index LESS _strLen)
++	    STRING(SUBSTRING "${str}" ${_index} 1 _strCursor)
++	    #MESSAGE("***STRING_UNQUOTE: _i=${_index} _strCursor=${_strCursor}")
++	    IF(NOT "${_strCursor}" MATCHES "${regex}")
++		SET(_ret ${_index})
++		SET(_index ${_strLen})
++	    ENDIF(NOT "${_strCursor}" MATCHES "${regex}")
++
++	    MATH(EXPR _index ${_index}+1)
++	ENDWHILE(_index LESS _strLen)
++	SET(${var} ${_ret} PARENT_SCOPE)
++    ENDFUNCTION(STRING_LEFTMOST_NOTMATCH_INDEX var str)
++
++    # Return (index of rightmost non match character) +1
++    # Return 0 if all characters matches regex
++    #
++    FUNCTION(STRING_RIGHTMOST_NOTMATCH_INDEX var str regex)
++	STRING(LENGTH "${str}" _strLen)
++	MATH(EXPR _index ${_strLen})
++	SET(_ret 0)
++	WHILE(_index GREATER 0)
++	    MATH(EXPR _index_1 ${_index}-1)
++	    STRING(SUBSTRING "${str}" ${_index_1} 1 _strCursor)
++	    #MESSAGE("***STRING_UNQUOTE: _i=${_index} _strCursor=${_strCursor}")
++
++	    IF(NOT "${_strCursor}" MATCHES "${regex}")
++		SET(_ret ${_index})
++		SET(_index 0)
++	    ENDIF(NOT "${_strCursor}" MATCHES "${regex}")
++	    MATH(EXPR _index ${_index}-1)
++	ENDWHILE(_index GREATER 0)
++	SET(${var} ${_ret} PARENT_SCOPE)
++    ENDFUNCTION(STRING_RIGHTMOST_NOTMATCH_INDEX var str)
++
++    MACRO(STRING_TRIM var str)
++	#STRING_ESCAPE(_ret "${str}" ${ARGN})
++	STRING_LEFTMOST_NOTMATCH_INDEX(_leftIndex "${str}" "[ \t\n\r]")
++	STRING_RIGHTMOST_NOTMATCH_INDEX(_rightIndex "${str}" "[ \t\n\r]")
++	#MESSAGE("_left=${_leftIndex} _rightIndex=${_rightIndex} str=|${str}|")
++	MATH(EXPR _subLen ${_rightIndex}-${_leftIndex})
++
++	IF(_subLen GREATER 0)
++	    STRING(SUBSTRING "${str}" ${_leftIndex} ${_subLen} _ret)
++	    # IF _subLen > 1
++	    #   IF UNQUOTE; then unquote
++	    # Otherwise don't touch
++	    IF (_subLen GREATER 1)
++		IF(NOT "${ARGN}" STREQUAL "NOUNQUOTE")
++		    STRING_UNQUOTE(_ret "${_ret}")
++		ENDIF(NOT "${ARGN}" STREQUAL "NOUNQUOTE")
++	    ENDIF (_subLen GREATER 1)
++	ELSE(_subLen GREATER 0)
++	    SET(_ret "")
++	ENDIF(_subLen GREATER 0)
++	SET(${var} "${_ret}")
++
++	# Unencoding
++	#STRING_UNESCAPE(${var} "${_ret}" ${ARGN})
++
++    ENDMACRO(STRING_TRIM var str)
++
++    # Internal macro
++    # Nested Variable cannot be escaped here, as variable is already substituted
++    # at the time it passes to this macro.
++    MACRO(STRING_ESCAPE var str)
++	# ';' and '\' are tricky, need to be encoded.
++	# '#' => '#H'
++	# '\' => '#B'
++	# ';' => '#S'
++	SET(_NOESCAPE_SEMICOLON "")
++	SET(_NOESCAPE_HASH "")
++
++	FOREACH(_arg ${ARGN})
++	    IF(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++		SET(_NOESCAPE_SEMICOLON "NOESCAPE_SEMICOLON")
++	    ELSEIF(${_arg} STREQUAL "NOESCAPE_HASH")
++		SET(_NOESCAPE_HASH "NOESCAPE_HASH")
++	    ENDIF(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++	ENDFOREACH(_arg)
++
++	IF(_NOESCAPE_HASH STREQUAL "")
++	    STRING(REGEX REPLACE "#" "#H" _ret "${str}")
++	ELSE(_NOESCAPE_HASH STREQUAL "")
++	    SET(_ret "${str}")
++	ENDIF(_NOESCAPE_HASH STREQUAL "")
++
++	STRING(REGEX REPLACE "\\\\" "#B" _ret "${_ret}")
++	IF(_NOESCAPE_SEMICOLON STREQUAL "")
++	    STRING(REGEX REPLACE ";" "#S" _ret "${_ret}")
++	ENDIF(_NOESCAPE_SEMICOLON STREQUAL "")
++	#MESSAGE("STRING_ESCAPE:_ret=${_ret}")
++	SET(${var} "${_ret}")
++    ENDMACRO(STRING_ESCAPE var str)
++
++    MACRO(STRING_UNESCAPE var str)
++	# '#B' => '\'
++	# '#H' => '#'
++	# '#D' => '$'
++	# '#S' => ';'
++	SET(_ESCAPE_VARIABLE "")
++	SET(_NOESCAPE_SEMICOLON "")
++	SET(_ret "${str}")
++	FOREACH(_arg ${ARGN})
++	    IF(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++		SET(_NOESCAPE_SEMICOLON "NOESCAPE_SEMICOLON")
++	    ELSEIF(${_arg} STREQUAL "ESCAPE_VARIABLE")
++		SET(_ESCAPE_VARIABLE "ESCAPE_VARIABLE")
++		STRING(REGEX REPLACE "#D" "$" _ret "${_ret}")
++	    ENDIF(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++	ENDFOREACH(_arg)
++	#MESSAGE("###STRING_UNESCAPE: var=${var} _ret=${_ret} _NOESCAPE_SEMICOLON=${_NOESCAPE_SEMICOLON} ESCAPE_VARIABLE=${_ESCAPE_VARIABLE}")
++
++	STRING(REGEX REPLACE "#B" "\\\\" _ret "${_ret}")
++	IF("${_NOESCAPE_SEMICOLON}" STREQUAL "")
++	    # ESCAPE_SEMICOLON
++	    STRING(REGEX REPLACE "#S" "\\\\;" _ret "${_ret}")
++	ELSE("${_NOESCAPE_SEMICOLON}" STREQUAL "")
++	    # Don't ESCAPE_SEMICOLON
++	    STRING(REGEX REPLACE "#S" ";" _ret "${_ret}")
++	ENDIF("${_NOESCAPE_SEMICOLON}" STREQUAL "")
++
++	IF(NOT _ESCAPE_VARIABLE STREQUAL "")
++	    # '#D' => '$'
++	    STRING(REGEX REPLACE "#D" "$" _ret "${_ret}")
++	ENDIF(NOT _ESCAPE_VARIABLE STREQUAL "")
++	STRING(REGEX REPLACE "#H" "#" _ret "${_ret}")
++	SET(${var} "${_ret}")
++	#MESSAGE("*** STRING_UNESCAPE: ${var}=${${var}}")
++    ENDMACRO(STRING_UNESCAPE var str)
++
++
++    MACRO(STRING_UNQUOTE var str)
++	SET(_ret "${str}")
++	STRING(LENGTH "${str}" _strLen)
++
++	# IF _strLen > 1
++	#   IF lCh and rCh are both "\""
++	#      Remove _lCh and _rCh
++	#   ELSEIF lCh and rCh are both "'"
++	#      Remove _lCh and _rCh
++	# Otherwise don't touch
++	IF(_strLen GREATER 1)
++	    STRING(SUBSTRING "${str}" 0 1 _lCh)
++	    MATH(EXPR _strLen_1 ${_strLen}-1)
++	    MATH(EXPR _strLen_2 ${_strLen_1}-1)
++	    STRING(SUBSTRING "${str}" ${_strLen_1} 1 _rCh)
++	    #MESSAGE("_lCh=${_lCh} _rCh=${_rCh} _ret=|${_ret}|")
++	    IF("${_lCh}" STREQUAL "\"" AND "${_rCh}" STREQUAL "\"")
++		STRING(SUBSTRING "${_ret}" 1 ${_strLen_2} _ret)
++	    ELSEIF("${_lCh}" STREQUAL "'" AND "${_rCh}" STREQUAL "'")
++		STRING(SUBSTRING "${_ret}" 1 ${_strLen_2} _ret)
++	    ENDIF("${_lCh}" STREQUAL "\"" AND "${_rCh}" STREQUAL "\"")
++	ENDIF (_strLen GREATER 1)
++	SET(${var} "${_ret}")
++    ENDMACRO(STRING_UNQUOTE var str)
++
++    #    MACRO(STRING_ESCAPE_SEMICOLON var str)
++    #	STRING(REGEX REPLACE ";" "\\\\;" ${var} "${str}")
++    #ENDMACRO(STRING_ESCAPE_SEMICOLON var str)
++
++    MACRO(STRING_JOIN var delimiter str_list)
++	SET(_ret "")
++	FOREACH(_str ${str_list})
++	    IF(_ret STREQUAL "")
++		SET(_ret "${_str}")
++	    ELSE(_ret STREQUAL "")
++		SET(_ret "${_ret}${delimiter}${_str}")
++	    ENDIF(_ret STREQUAL "")
++	ENDFOREACH(_str ${str_list})
++
++	FOREACH(_str ${ARGN})
++	    IF(_ret STREQUAL "")
++		SET(_ret "${_str}")
++	    ELSE(_ret STREQUAL "")
++		SET(_ret "${_ret}${delimiter}${_str}")
++	    ENDIF(_ret STREQUAL "")
++	ENDFOREACH(_str ${str_list})
++	SET(${var} "${_ret}")
++    ENDMACRO(STRING_JOIN var delimiter str_list)
++
++    MACRO(STRING_SPLIT var delimiter str)
++	#MESSAGE("***STRING_SPLIT: var=${var} str=${str}")
++	SET(_max_tokens "")
++	SET(_NOESCAPE_SEMICOLON "")
++	SET(_ESCAPE_VARIABLE "")
++	FOREACH(_arg ${ARGN})
++	    IF(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++		SET(_NOESCAPE_SEMICOLON "NOESCAPE_SEMICOLON")
++	    ELSEIF(${_arg} STREQUAL "ESCAPE_VARIABLE")
++		SET(_ESCAPE_VARIABLE "ESCAPE_VARIABLE")
++	    ELSE(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++		SET(_max_tokens ${_arg})
++	    ENDIF(${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++	ENDFOREACH(_arg)
++
++	IF(NOT _max_tokens)
++	    SET(_max_tokens -1)
++	ENDIF(NOT _max_tokens)
++
++	STRING_ESCAPE(_str "${str}" ${_NOESCAPE_SEMICOLON} ${_ESCAPE_VARIABLE})
++	#MESSAGE("_str (escaped)=${_str}")
++	STRING_ESCAPE(_delimiter "${delimiter}" ${_NOESCAPE_SEMICOLON} ${_ESCAPE_VARIABLE})
++
++	SET(_str_list "")
++	SET(_token_count 0)
++	STRING(LENGTH "${_delimiter}" _de_len)
++
++	WHILE(NOT _token_count EQUAL _max_tokens)
++	    #MESSAGE("_token_count=${_token_count} _max_tokens=${_max_tokens} _str=${_str}")
++	    MATH(EXPR _token_count ${_token_count}+1)
++	    IF(_token_count EQUAL _max_tokens)
++		# Last token, no need splitting
++		LIST(APPEND _str_list "${_str}")
++	    ELSE(_token_count EQUAL _max_tokens)
++		# in case encoded characters are delimiters
++		STRING(LENGTH "${_str}" _str_len)
++		SET(_index 0)
++		#MESSAGE("_str_len=${_str_len}")
++		SET(_token "")
++		SET(_str_remain "")
++		MATH(EXPR _str_end ${_str_len}-${_de_len}+1)
++		WHILE(_index LESS _str_end)
++		    STRING(SUBSTRING "${_str}" ${_index} ${_de_len} _str_cursor)
++		    #MESSAGE("_index=${_index} _str_cursor=${_str_cursor} _de_len=${_de_len} _delimiter=|${_delimiter}|")
++		    IF(_str_cursor STREQUAL _delimiter)
++			# Get the token
++			STRING(SUBSTRING "${_str}" 0 ${_index} _token)
++			# Get the rest
++			MATH(EXPR _rest_index ${_index}+${_de_len})
++			MATH(EXPR _rest_len ${_str_len}-${_index}-${_de_len})
++			STRING(SUBSTRING "${_str}" ${_rest_index} ${_rest_len} _str_remain)
++			SET(_index ${_str_end})
++		    ELSE(_str_cursor STREQUAL _delimiter)
++			MATH(EXPR _index ${_index}+1)
++		    ENDIF(_str_cursor STREQUAL _delimiter)
++		ENDWHILE(_index LESS _str_end)
++
++		#MESSAGE("_token=${_token} _str_remain=${_str_remain}")
++
++		IF("${_str_remain}" STREQUAL "")
++		    # Meaning: end of string
++		    LIST(APPEND _str_list "${_str}")
++		    SET(_max_tokens ${_token_count})
++		ELSE("${_str_remain}" STREQUAL "")
++		    LIST(APPEND _str_list "${_token}")
++		    SET(_str "${_str_remain}")
++		ENDIF("${_str_remain}" STREQUAL "")
++	    ENDIF(_token_count EQUAL _max_tokens)
++	ENDWHILE(NOT _token_count EQUAL _max_tokens)
++
++	# Unencoding
++	STRING_UNESCAPE(${var} "${_str_list}" ${_NOESCAPE_SEMICOLON} ${_ESCAPE_VARIABLE})
++	#MESSAGE("***STRING_SPLIT: tokens=${${var}}")
++    ENDMACRO(STRING_SPLIT var delimiter str)
++
++ENDIF(NOT DEFINED _MANAGE_STRING_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageTranslation.cmake ibus-chewing/Modules/ManageTranslation.cmake
+--- ibus-chewing-orig/Modules/ManageTranslation.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageTranslation.cmake	2011-09-20 14:16:28.000000000 +0900
+@@ -0,0 +1,365 @@
++# - Software Translation support
++# This module supports software translation by:
++#   1) Creates gettext related targets.
++#   2) Communicate to Zanata servers.
++#
++# The Gettext part of this module is from FindGettext.cmake of cmake,
++# but it is included here because:
++#  1. Bug of GETTEXT_CREATE_TRANSLATIONS make it unable to be include in 'All'
++#  2. It does not support xgettext
++#
++# Defines following variables:
++#   + XGETTEXT_OPTIONS_C: Usual xgettext options for C programs.
++#
++# Defines following macros:
++#   GETTEXT_CREATE_POT([potFile]
++#     [OPTIONS xgettext_options]
++#     SRC list_of_source_files
++#   )
++#   - Generate .pot file.
++#     Arguments:
++#     + potFile: pot file to be generated.
++#       Default: ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pot
++#     + xgettext_options: (optional) xgettext_options.
++#       Default: No options.
++#     + list_of_source_files: List of source files that contains msgid.
++#     Targets:
++#     + pot_file: Generate a pot file with the file name specified in potFile.
++#     Defines:
++#
++#   GETTEXT_CREATE_TRANSLATIONS ( [potFile] [ALL] locale1 ... localeN
++#     [COMMENT comment] )
++#   - This will create a target "translations" which converts given input po
++#     files into the binary output mo files. If the ALL option is used, the
++#     translations will also be created when building with "make all"
++#     Arguments:
++#     + potFile: pot file to be referred.
++#       Default: ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pot
++#     + ALL: (Optional) target "translations" is included when building with
++#       "make all"
++#     + locale1 ... localeN: locale to be built.
++#     + comment: (Optional) Comment for target "translations".
++#     Targets:
++#     + translations: Converts input po files into the binary output mo files.
++#
++#   USE_GETTEXT [ALL] SRCS src1 [src2 [...]]
++#	LOCALES locale1 [locale2 [...]]
++#	[POTFILE potfile]
++#	[XGETTEXT_OPTIONS xgettextOpt]]
++#	)
++#   - Provide Gettext support like generate .pot file and
++#     a target "translations" which converts given input po
++#     files into the binary output mo files. If the "ALL" option is used, the
++#     translations will also be created when building with "make all"
++#     Arguments:
++#     + ALL: (Optional) target "translations" is included when building with
++#       "make all"
++#     + SRCS src1 [src2 [...]]: File list of source code that contains msgid.
++#     + LOCALE locale1 [local2 [...]]: Locale list to be generated.
++#       Currently, only the format: lang_Region (such as fr_FR) is supported.
++#     + POTFILE potFile: (optional) pot file to be referred.
++#       Default: ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pot
++#     + XGETTEXT_OPTIONS xgettextOpt: (optional) xgettext_options.
++#       Default: ${XGETTEXT_OPTIONS_C}
++#     Defines following variables:
++#     + GETTEXT_MSGMERGE_EXECUTABLE: the full path to the msgmerge tool.
++#     + GETTEXT_MSGFMT_EXECUTABLE: the full path to the msgfmt tool.
++#     + XGETTEXT_EXECUTABLE: the full path to the xgettext.
++#     Targets:
++#     + pot_file: Generate the pot_file.
++#     + gmo_files: Converts input po files into the binary output mo files.
++#
++#   USE_ZANATA(serverUrl [ALL_FOR_PUSH] [ALL_FOR_PUSH_TRANS] [ALL_FOR_PULL]
++#     [OPTIONS options])
++#   - Use Zanata (was flies) as translation service.
++#     Note that value for --project-id, --project-version, --project-name,
++#     --project-version, --url, --project-config, --push-trans
++#     are automatically generated.
++#     Arguments:
++#     + serverUrl: The URL of Zanata server
++#     + ALL_FOR_PUSH: (Optional) "make all" invokes targets "zanata_push"
++#     + ALL_FOR_PUSH_TRANS: (Optional) "make all" invokes targets "zanata_push_trans"
++#     + ALL_FOR_PULL: (Optional) "make all" invokes targets "zanata_pull"
++#     + OPTIONS options: (Optional) Options to be pass to zanata.
++#       Note that PROJECT_NAME is passed as --project-id,
++#       and PRJ_VER is passed as --project-version
++#     Targets:
++#     + zanata_project_create: Create project with PROJECT_NAME in zanata
++#       server.
++#     + zanata_version_create: Create version PRJ_VER in zanata server.
++#     + zanata_push: Push source messages to zanata server
++#     + zanata_push_trans: Push source messages and translations to zanata server.
++#     + zanata_pull: Pull translations from zanata server.
++#
++
++
++IF(NOT DEFINED _MANAGE_TRANSLATION_CMAKE_)
++    SET(_MANAGE_TRANSLATION_CMAKE_ "DEFINED")
++    SET(XGETTEXT_OPTIONS_C
++	--language=C --keyword=_ --keyword=N_ --keyword=C_:1c,2 --keyword=NC_:1c,2 -s
++	--package-name=${PROJECT_NAME} --package-version=${PRJ_VER})
++    INCLUDE(ManageMessage)
++
++
++    #========================================
++    # GETTEXT support
++
++    MACRO(USE_GETTEXT_INIT)
++	FIND_PROGRAM(XGETTEXT_EXECUTABLE xgettext)
++	IF(XGETTEXT_EXECUTABLE STREQUAL "XGETTEXT_EXECUTABLE-NOTFOUND")
++	    SET(_gettext_dependency_missing 1)
++	    M_MSG(${M_OFF} "xgettext not found! gettext support disabled.")
++	ENDIF(XGETTEXT_EXECUTABLE STREQUAL "XGETTEXT_EXECUTABLE-NOTFOUND")
++
++	FIND_PROGRAM(GETTEXT_MSGMERGE_EXECUTABLE msgmerge)
++	IF(GETTEXT_MSGMERGE_EXECUTABLE STREQUAL "GETTEXT_MSGMERGE_EXECUTABLE-NOTFOUND")
++	    SET(_gettext_dependency_missing 1)
++	    M_MSG(${M_OFF} "msgmerge not found! gettext support disabled.")
++	ENDIF(GETTEXT_MSGMERGE_EXECUTABLE STREQUAL "GETTEXT_MSGMERGE_EXECUTABLE-NOTFOUND")
++
++	FIND_PROGRAM(GETTEXT_MSGFMT_EXECUTABLE msgfmt)
++	IF(GETTEXT_MSGFMT_EXECUTABLE STREQUAL "GETTEXT_MSGFMT_EXECUTABLE-NOTFOUND")
++	    SET(_gettext_dependency_missing 1)
++	    M_MSG(${M_OFF} "msgfmt not found! gettext support disabled.")
++	ENDIF(GETTEXT_MSGFMT_EXECUTABLE STREQUAL "GETTEXT_MSGFMT_EXECUTABLE-NOTFOUND")
++
++    ENDMACRO(USE_GETTEXT_INIT)
++
++    MACRO(USE_GETTEXT)
++	SET(_gettext_dependency_missing 0)
++	USE_GETTEXT_INIT()
++	IF(${_gettext_dependency_missing} EQUAL 0)
++	    SET(_stage)
++	    SET(_all)
++	    SET(_src_list)
++	    SET(_src_list_abs)
++	    SET(_locale_list)
++	    SET(_potFile)
++	    SET(_xgettext_option_list)
++	    FOREACH(_arg ${ARGN})
++		IF(_arg STREQUAL "ALL")
++		    SET(_all "ALL")
++		ELSEIF(_arg STREQUAL "SRCS")
++		    SET(_stage "SRCS")
++		ELSEIF(_arg STREQUAL "LOCALES")
++		    SET(_stage "LOCALES")
++		ELSEIF(_arg STREQUAL "XGETTEXT_OPTIONS")
++		    SET(_stage "XGETTEXT_OPTIONS")
++		ELSEIF(_arg STREQUAL "POTFILE")
++		    SET(_stage "POTFILE")
++		ELSE(_arg STREQUAL "ALL")
++		    IF(_stage STREQUAL "SRCS")
++			FILE(RELATIVE_PATH _relFile ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${_arg})
++			LIST(APPEND _src_list ${_relFile})
++			GET_FILENAME_COMPONENT(_absFile ${_arg} ABSOLUTE)
++			LIST(APPEND _src_list_abs ${_absFile})
++		    ELSEIF(_stage STREQUAL "LOCALES")
++			LIST(APPEND _locale_list ${_arg})
++		    ELSEIF(_stage STREQUAL "XGETTEXT_OPTIONS")
++			LIST(APPEND _xgettext_option_list ${_arg})
++		    ELSEIF(_stage STREQUAL "POTFILE")
++			SET(_potFile "${_arg}")
++		    ELSE(_stage STREQUAL "SRCS")
++			M_MSG(${M_WARN} "USE_GETTEXT: not recognizing arg ${_arg}")
++		    ENDIF(_stage STREQUAL "SRCS")
++		ENDIF(_arg STREQUAL "ALL")
++	    ENDFOREACH(_arg ${_args} ${ARGN})
++
++	    # Default values
++	    IF(_xgettext_option_list STREQUAL "")
++		SET(_xgettext_option_list ${XGETTEXT_OPTIONS_C})
++	    ENDIF(_xgettext_option_list STREQUAL "")
++
++	    IF("${_potFile}" STREQUAL "")
++		SET(_potFile "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pot")
++	    ENDIF("${_potFile}" STREQUAL "")
++
++	    M_MSG(${M_INFO2} "XGETTEXT=${XGETTEXT_EXECUTABLE} ${_xgettext_option_list} -o ${_potFile} ${_src_list}")
++	    ADD_CUSTOM_COMMAND(OUTPUT ${_potFile}
++		COMMAND ${XGETTEXT_EXECUTABLE} ${_xgettext_option_list} -o ${_potFile} ${_src_list}
++		DEPENDS ${_src_list_abs}
++		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
++		COMMENT "Extract translatable messages to ${_potFile}"
++		)
++
++	    ADD_CUSTOM_TARGET(pot_file ${_all}
++		DEPENDS ${_potFile}
++		)
++
++	    ### Generating gmo files
++	    SET(_gmoFile_list)
++	    GET_FILENAME_COMPONENT(_potBasename ${_potFile} NAME_WE)
++	    GET_FILENAME_COMPONENT(_potDir ${_potFile} PATH)
++	    GET_FILENAME_COMPONENT(_absPotFile ${_potFile} ABSOLUTE)
++	    GET_FILENAME_COMPONENT(_absPotDir ${_absPotFile} PATH)
++	    FOREACH(_locale ${_locale_list})
++		SET(_gmoFile ${_absPotDir}/${_locale}.gmo)
++		SET(_absFile ${_absPotDir}/${_locale}.po)
++		ADD_CUSTOM_COMMAND(	OUTPUT ${_gmoFile}
++		    COMMAND ${GETTEXT_MSGMERGE_EXECUTABLE} --quiet --update --backup=none
++		    -s ${_absFile} ${_potFile}
++		    COMMAND ${GETTEXT_MSGFMT_EXECUTABLE} -o ${_gmoFile} ${_absFile}
++		    DEPENDS ${_potFile} ${_absFile}
++		    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
++		    COMMENT "Generating ${_locale} translation"
++		    )
++
++		#MESSAGE("_absFile=${_absFile} _absPotDir=${_absPotDir} _lang=${_lang} curr_bin=${CMAKE_CURRENT_BINARY_DIR}")
++		INSTALL(FILES ${_gmoFile} DESTINATION share/locale/${_locale}/LC_MESSAGES RENAME ${_potBasename}.mo)
++		LIST(APPEND _gmoFile_list ${_gmoFile})
++	    ENDFOREACH(_locale ${_locale_list})
++	    M_MSG(${M_INFO2} "_gmoFile_list=${_gmoFile_list}")
++
++	    ADD_CUSTOM_TARGET(gmo_files ${_all}
++		DEPENDS ${_gmoFile_list}
++		COMMENT "Generate gmo files for translation"
++		)
++	ENDIF(${_gettext_dependency_missing} EQUAL 0)
++    ENDMACRO(USE_GETTEXT)
++
++
++    #========================================
++    # ZANATA support
++    MACRO(USE_ZANATA serverUrl)
++	SET(ZANATA_SERVER "${serverUrl}")
++	SET(ZANATA_XML_SEARCH_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
++	    ${CMAKE_CURRENT_SOURCE_DIR}/po ${CMAKE_SOURCE_DIR}/po)
++	FIND_PROGRAM(ZANATA_CMD zanata)
++	SET(_failed 0)
++	IF(ZANATA_CMD STREQUAL "ZANATA_CMD-NOTFOUND")
++	    SET(_failed 1)
++	    M_MSG(${M_OFF} "zanata (python client) not found! zanata support disabled.")
++	ENDIF(ZANATA_CMD STREQUAL "ZANATA_CMD-NOTFOUND")
++
++	IF(NOT EXISTS $ENV{HOME}/.config/zanata.ini)
++	    SET(_failed 1)
++	    M_MSG(${M_OFF} "~/.config/zanata.ini is not found! Zanata support disabled.")
++	ENDIF(NOT EXISTS $ENV{HOME}/.config/zanata.ini)
++
++	SET(_zanata_xml "")
++	FIND_PATH(_zanata_xml_in_dir "zanata.xml.in" PATHS ${ZANATA_XML_SEARCH_PATH})
++	IF(NOT "${_zanata_xml_in_dir}" MATCHES "NOTFOUND")
++	    SET(_zanata_xml_in ${_zanata_xml_in_dir}/zanata.xml.in)
++	    M_MSG(${M_INFO1} "USE_ZANATA:_zanata_xml_in=${_zanata_xml_in}")
++	    SET(_zanata_xml ${_zanata_xml_in_dir}/zanata.xml)
++	    CONFIGURE_FILE(${_zanata_xml_in} ${_zanata_xml} @ONLY)
++	ENDIF(NOT "${_zanata_xml_in_dir}" MATCHES "NOTFOUND")
++
++	IF(NOT "${_zanata_xml}" STREQUAL "")
++	    FIND_PATH(_zanata_xml_dir "zanata.xml" PATHS ${ZANATA_XML_SEARCH_PATH})
++	    IF(NOT "${_zanata_xml_dir}" MATCHES "NOTFOUND")
++		SET(_zanata_xml "${_zanata_xml_dir}/zanata.xml")
++	    ELSE(NOT "${_zanata_xml_dir}" MATCHES "NOTFOUND")
++		SET(_failed 1)
++		M_MSG(${M_OFF} "zanata.xml not found in ${ZANATA_XML_SEARCH_PATH}! zanata support disabled.")
++	    ENDIF(NOT "${_zanata_xml_dir}" MATCHES "NOTFOUND")
++	ENDIF(NOT "${_zanata_xml}" STREQUAL "")
++
++	IF(_failed EQUAL 0)
++	    M_MSG(${M_INFO1} "USE_ZANATA:_zanata_xml=${_zanata_xml}")
++	    # Parsing arguments
++	    SET(_miscOpts "")
++	    SET(_pushOpts "")
++	    SET(_pullOpts "")
++	    SET(_projTypeOpt "")
++	    SET(_stage "")
++	    SET(_allForPush "")
++	    SET(_allForPushTrans "")
++	    SET(_allForPull "")
++	    FOREACH(_arg ${ARGN})
++		IF(_arg STREQUAL "OPTIONS")
++		    SET(_stage "${_arg}")
++		ELSEIF(_arg STREQUAL "ALL_FOR_PUSH")
++		    SET(_allForPush "ALL")
++		ELSEIF(_arg STREQUAL "ALL_FOR_PUSH_TRANS")
++		    SET(_allForPushTrans "ALL")
++		ELSEIF(_arg STREQUAL "ALL_FOR_PUSH")
++		    SET(_allForPull "ALL")
++		ELSE(_arg STREQUAL "OPTIONS")
++		    IF(_stage STREQUAL "OPTIONS")
++			IF(_arg MATCHES "^--project-type=")
++			    SET(_projTypeOpt ${_arg})
++			ELSEIF(_arg MATCHES "^--.*dir=")
++			    LIST(APPEND _pushOpts ${_arg})
++			    LIST(APPEND _pullOpts ${_arg})
++			ELSEIF(_arg MATCHES "^--merge")
++			    LIST(APPEND _pushOpts ${_arg})
++			ELSEIF(_arg MATCHES "^--no-copytrans")
++			    LIST(APPEND _pushOpts ${_arg})
++			ELSE(_arg MATCHES "^--project-type=")
++			    LIST(APPEND _miscOpts ${_arg})
++			ENDIF(_arg MATCHES "^--project-type=")
++		    ENDIF(_stage STREQUAL "OPTIONS")
++		ENDIF(_arg STREQUAL "SRCDIR")
++	    ENDFOREACH(_arg ${ARGN})
++
++	    IF(_projTypeOpt STREQUAL "")
++		SET(_projTypeOpt "--project-type=gettext")
++	    ENDIF(_projTypeOpt STREQUAL "")
++
++	    SET(_zanata_args --url=${ZANATA_SERVER}
++		--project-config=${_zanata_xml})
++
++	    ADD_CUSTOM_TARGET(zanata_project_create
++		COMMAND ${ZANATA_CMD} project create ${PROJECT_NAME} ${_zanata_args}
++		"--project-name=${PROJECT_NAME}" "--project-desc=${PRJ_SUMMARY}"
++		COMMENT "Create project translation on Zanata server ${serverUrl}"
++		VERBATIM
++		)
++	    ADD_CUSTOM_TARGET(zanata_version_create
++		COMMAND ${ZANATA_CMD} version create
++		${PRJ_VER} ${_zanata_args} --project-id=${PROJECT_NAME}
++		COMMENT "Create version ${PRJ_VER} on Zanata server ${serverUrl}"
++		VERBATIM
++		)
++
++	    # Zanata push
++	    ADD_CUSTOM_TARGET(zanata_push ${_allForPush}
++		COMMAND yes |
++		${ZANATA_CMD} push ${_zanata_args}
++		--project-id=${PROJECT_NAME}
++		--project-version=${PRJ_VER}
++		${_pushOpts}
++		${_projTypeOpt}
++		${_miscOpts}
++		COMMENT "Push source messages of version ${PRJ_VER}"
++	       	"to zanata server ${ZANATA_SERVER}"
++		VERBATIM
++		)
++	    ADD_DEPENDENCIES(zanata_push pot_file)
++
++	    # Zanata push with translation
++	    ADD_CUSTOM_TARGET(zanata_push_trans ${_allForPushTrans}
++		COMMAND yes |
++		${ZANATA_CMD} push ${_zanata_args}
++		--project-id=${PROJECT_NAME}
++		--project-version=${PRJ_VER}
++		--push-trans
++		${_pushOpts}
++		${_projTypeOpt}
++		${_miscOpts}
++		COMMENT "Push source messages and translations of version ${PRJ_VER}"
++		"to zanata server ${ZANATA_SERVER}"
++		VERBATIM
++		)
++
++	    ADD_DEPENDENCIES(zanata_push_trans pot_file)
++
++	    # Zanata pull
++	    ADD_CUSTOM_TARGET(zanata_pull ${_allForPull}
++		COMMAND yes |
++		${ZANATA_CMD} pull ${_zanata_args}
++		--project-id=${PROJECT_NAME}
++		--project-version=${PRJ_VER}
++		${_projTypeOpt}
++		${_miscOpts}
++		COMMENT "Pull translations of version ${PRJ_VER}"
++		"from zanata server ${ZANATA_SERVER}"
++		VERBATIM
++		)
++
++	ENDIF(_failed EQUAL 0)
++    ENDMACRO(USE_ZANATA serverUrl)
++
++ENDIF(NOT DEFINED _MANAGE_TRANSLATION_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageUninstall.cmake ibus-chewing/Modules/ManageUninstall.cmake
+--- ibus-chewing-orig/Modules/ManageUninstall.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageUninstall.cmake	2011-09-20 11:09:39.000000000 +0900
+@@ -0,0 +1,28 @@
++# - Uninstall target.
++# Use this module to provide uninstall target.
++#
++# Define following targets
++#   uninstall: For uninstalling the package.
++#
++
++IF(NOT DEFINED _MANAGE_UNINSTALL_CMAKE_)
++    SET(_MANAGE_UNINSTALL_CMAKE_ "DEFINED")
++    SET(CMAKE_UNINSTALL_IN_SEARCH_PATH ${CMAKE_MODULE_PATH} ${CMAKE_ROOT}/Modules ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/Modules)
++    FIND_FILE(CMAKE_UNINSTALL_IN cmake_uninstall.cmake.in
++	PATHS ${CMAKE_UNINSTALL_IN_SEARCH_PATH})
++
++    # MESSAGE("CMAKE_UNINSTALL_IN=${CMAKE_UNINSTALL_IN}")
++    IF(CMAKE_UNINSTALL_IN STREQUAL "CMAKE_UNINSTALL_IN-NOTFOUND")
++	MESSAGE(FATAL_ERROR "Cannot find cmake_uninstall.cmake.in in"
++	    "${CMAKE_UNINSTALL_IN_SEARCH_PATH}")
++    ENDIF(CMAKE_UNINSTALL_IN STREQUAL "CMAKE_UNINSTALL_IN-NOTFOUND")
++
++    CONFIGURE_FILE("${CMAKE_UNINSTALL_IN}"
++	"${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
++	IMMEDIATE @ONLY)
++
++    ADD_CUSTOM_TARGET(uninstall
++	"${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
++	)
++ENDIF(NOT DEFINED _MANAGE_UNINSTALL_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageVariable.cmake ibus-chewing/Modules/ManageVariable.cmake
+--- ibus-chewing-orig/Modules/ManageVariable.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageVariable.cmake	2011-08-26 11:08:53.000000000 +0900
+@@ -0,0 +1,277 @@
++# - Get or set variables from various sources.
++#
++# Includes:
++#   ManageString
++#
++# Included by:
++#   ManageVersion
++#   PackRPM
++#
++#
++# Defines the following macros:
++#   COMMAND_OUTPUT_TO_VARIABLE(var cmd)
++#     - Store command output to a variable, without new line characters (\n and \r).
++#       This macro is suitable for command that output one line result.
++#       Note that the var will be set to ${var_name}-NOVALUE if cmd does not have
++#       any output.
++#       * Parameters:
++#         var: A variable that stores the result.
++#         cmd: A command.
++#
++#   SETTING_FILE_GET_VARIABLES_PATTERN(var attr_pattern setting_file [NOUNQUOTE] [NOREPLACE]
++#     [NOESCAPE_SEMICOLON] [setting_sign])
++#     - Get variable values from a setting file if their names matches given
++#       pattern. '#' is used for comment.
++#       * Parameters:
++#         + var: Variable to store the attribute value.
++#           Set to "" to set attribute under matched variable name.
++#         + attr_pattern: Regex pattern of variable name.
++#         + setting_file: Setting filename.
++#         + NOUNQUOTE: (Optional) do not remove the double quote mark around the string.
++#         + NOREPLACE (Optional) Without this parameter, this macro replaces
++#           previous defined variables, use NOREPLACE to prevent this.
++#         + NOESCAPE_SEMICOLON: (Optional) do not escape semicolons.
++#         + setting_sign: (Optional) The symbol that separate attribute name and its value.
++#           Default value: "="
++#
++#   SETTING_FILE_GET_ALL_VARIABLES(setting_file [NOUNQUOTE] [NOREPLACE]
++#     [NOESCAPE_SEMICOLON] [setting_sign])
++#     - Get all variable values from a setting file.
++#       It is equivalent to:
++#       SETTING_FILE_GET_VARIABLES_PATTERN("" "[A-Za-z_][A-Za-z0-9_]*"
++#        "${setting_file}" ${ARGN})
++#      '#' is used to comment out setting.
++#       * Parameters:
++#         + setting_file: Setting filename.
++#         + NOUNQUOTE: (Optional) do not remove the double quote mark around the string.
++#         + NOREPLACE (Optional) Without this parameter, this macro replaces
++#           previous defined variables, use NOREPLACE to prevent this.
++#         + NOESCAPE_SEMICOLON: (Optional) Do not escape semicolons.
++#         + setting_sign: (Optional) The symbol that separate attribute name and its value.
++#           Default value: "="
++#
++#   SETTING_FILE_GET_VARIABLE(var attr_name setting_file [NOUNQUOTE] [NOREPLACE]
++#     [NOESCAPE_SEMICOLON] [setting_sign])
++#     - Get a variable value from a setting file.
++#       It is equivalent to:
++#	SETTING_FILE_GET_VARIABLES_PATTERN(${var} "${attr_name}"
++#	    "${setting_file}" ${ARGN})
++#      '#' is used to comment out setting.
++#       * Parameters:
++#         + var: Variable to store the attribute value.
++#         + attr_name: Name of the variable.
++#         + setting_file: Setting filename.
++#         + NOUNQUOTE: (Optional) do not remove the double quote mark around the string.
++#         + NOREPLACE (Optional) Without this parameter, this macro replaces
++#           previous defined variables, use NOREPLACE to prevent this.
++#         + NOESCAPE_SEMICOLON: (Optional) do not escape semicolons.
++#         + setting_sign: (Optional) The symbol that separate attribute name and its value.
++#           Default value: "="
++#
++#   SETTING_FILE_GET_ALL_VARIABLES(setting_file [NOUNQUOTE] [NOREPLACE]
++#     [NOESCAPE_SEMICOLON] [setting_sign])
++#     - Get all attribute values from a setting file.
++#       '#' is used to comment out setting.
++#       * Parameters:
++#         + setting_file: Setting filename.
++#         + NOUNQUOTE: (Optional) do not remove the double quote mark around the string.
++#         + NOREPLACE (Optional) Without this parameter, this macro replaces
++#           previous defined variables, use NOREPLACE to prevent this.
++#         + NOESCAPE_SEMICOLON: (Optional) Do not escape semicolons.
++#         + setting_sign: (Optional) The symbol that separate attribute name and its value.
++#           Default value: "="
++#
++#   GET_ENV(var default_value [env])
++#     - Get the value of a environment variable, or use default
++#       if the environment variable does not exist or is empty.
++#       * Parameters:
++#         var: Variable to be set
++#         default_value: Default value of the var
++#         env: (Optional) The name of environment variable. Only need if different from var.
++#
++#   SET_VAR(var untrimmed_value)
++#     - Trim an set the value to a variable.
++#       * Parameters:
++#         var: Variable to be set
++#         untrimmed_value: Untrimmed values that may have space, \t, \n, \r in the front or back of the string.
++#
++
++IF(NOT DEFINED _MANAGE_VARIABLE_CMAKE_)
++    SET(_MANAGE_VARIABLE_CMAKE_ "DEFINED")
++    INCLUDE(ManageString)
++
++    MACRO(COMMAND_OUTPUT_TO_VARIABLE var cmd)
++	EXECUTE_PROCESS(
++	    COMMAND ${cmd} ${ARGN}
++	    OUTPUT_VARIABLE _cmd_output
++	    OUTPUT_STRIP_TRAILING_WHITESPACE
++	    )
++	IF(_cmd_output)
++	    SET(${var} ${_cmd_output})
++	ELSE(_cmd_output)
++	    SET(var "${var}-NOVALUE")
++	ENDIF(_cmd_output)
++	#SET(value ${${var}})
++	#MESSAGE("var=${var} _cmd_output=${_cmd_output} value=|${value}|" )
++    ENDMACRO(COMMAND_OUTPUT_TO_VARIABLE var cmd)
++
++    # This macro is meant to be internal.
++    MACRO(_MANAGE_VARIABLE_SET var value)
++	SET(${var} "${value}")
++    ENDMACRO(_MANAGE_VARIABLE_SET var value)
++
++    # This macro is meant to be internal.
++    # it deals the "encoded" line.
++    MACRO(SETTING_FILE_LINE_PARSE attr value setting_sign str  _noUnQuoted )
++	STRING_SPLIT(_tokens "${setting_sign}" "${str}" 2)
++	SET(_idx 0)
++	FOREACH(_token ${_tokens})
++	    IF(_idx EQUAL 0)
++		SET(${attr} "${_token}")
++	    ELSE(_idx EQUAL 0)
++		SET_VAR(${value} "${_token}" ${_noUnQuoted})
++	    ENDIF(_idx EQUAL 0)
++	    MATH(EXPR _idx ${_idx}+1)
++	ENDFOREACH(_token ${_tokens})
++    ENDMACRO(SETTING_FILE_LINE_PARSE attr value setting_sign str  _noUnQuoted)
++
++    # Internal macro
++    # Similar to STRING_ESCAPE, but read directly from file,
++    # This avoid the variable substitution
++    # Variable escape is enforced.
++    MACRO(FILE_READ_ESCAPE var filename)
++	# '$' is very tricky.
++	# '$' => '#D'
++	GET_FILENAME_COMPONENT(_filename_abs "${filename}" ABSOLUTE)
++	EXECUTE_PROCESS(COMMAND cat ${filename}
++	    COMMAND sed -e "s/#/#H/g"
++	    COMMAND sed -e "s/[$]/#D/g"
++	    COMMAND sed -e "s/;/#S/g"
++	    COMMAND sed -e "s/[\\]/#B/g"
++	    OUTPUT_VARIABLE _ret
++	    OUTPUT_STRIP_TRAILING_WHITESPACE)
++
++	STRING(REGEX REPLACE "\n" ";" _ret "${_ret}")
++	#MESSAGE("_ret=|${_ret}|")
++	SET(${var} "${_ret}")
++    ENDMACRO(FILE_READ_ESCAPE var filename)
++
++    MACRO(SETTING_FILE_GET_VARIABLES_PATTERN var attr_pattern setting_file)
++	SET(setting_sign "=")
++	SET(_noUnQuoted "")
++	SET(_noEscapeSemicolon "")
++	SET(_noReplace "")
++	SET(_escapeVariable "")
++	FOREACH(_arg ${ARGN})
++	    IF (${_arg} STREQUAL "NOUNQUOTE")
++		SET(_noUnQuoted "NOUNQUOTE")
++	    ELSEIF (${_arg} STREQUAL "NOREPLACE")
++		SET(_noReplace "NOREPLACE")
++	    ELSEIF (${_arg} STREQUAL "NOESCAPE_SEMICOLON")
++		SET(_noEscapeSemicolon "NOESCAPE_SEMICOLON")
++	    ELSEIF (${_arg} STREQUAL "ESCAPE_VARIABLE")
++		SET(_escapeVariable "ESCAPE_VARIABLE")
++	    ELSE(${_arg} STREQUAL "NOUNQUOTE")
++		SET(setting_sign ${_arg})
++	    ENDIF(${_arg} STREQUAL "NOUNQUOTE")
++	ENDFOREACH(_arg)
++
++	# Escape everything to be safe.
++	FILE_READ_ESCAPE(_lines "${setting_file}")
++
++	#STRING_SPLIT(_lines "\n" "${_txt_content}")
++	#MESSAGE("_lines=|${_lines}|")
++	SET(_actual_line "")
++	SET(_join_next 0)
++	FOREACH(_line ${_lines})
++	    #MESSAGE("_line=|${_line}|")
++	    IF(NOT _line MATCHES "^[ \\t]*#H")
++		# Not a comment line.
++		IF(_join_next EQUAL 1)
++		    SET(_actual_line "${_actual_line}${_line}" )
++		ELSE(_join_next EQUAL 1)
++		    SET(_actual_line "${_line}")
++		ENDIF(_join_next EQUAL 1)
++		#MESSAGE("_actual_line=|${_actual_line}|")
++
++		IF(_actual_line MATCHES "#B$")
++		    #Join the lines that end with \\
++		    SET(_join_next 1)
++		    STRING(REGEX REPLACE "#B$" "" _actual_line "${_actual_line}")
++		ELSE(_actual_line MATCHES "#B$")
++		    SET(_join_next 0)
++		    IF(_actual_line MATCHES "[ \\t]*${attr_pattern}[ \\t]*${setting_sign}")
++			#MESSAGE("*** matched_line=|${_actual_line}|")
++			SETTING_FILE_LINE_PARSE(_attr _value ${setting_sign}
++			    "${_actual_line}" "${_noUnQuoted}" )
++			#MESSAGE("*** _attr=${_attr} _value=${_value}")
++			IF(_noReplace STREQUAL "" OR NOT DEFINED ${_attr})
++			    # Unencoding
++			    STRING_UNESCAPE(_value "${_value}" ${_noEscapeSemicolon} ESCAPE_VARIABLE)
++			    IF(_escapeVariable STREQUAL "")
++				# Variable should not be escaped
++				# i.e. need substitution
++				_MANAGE_VARIABLE_SET(_value "${_value}")
++			    ENDIF(_escapeVariable STREQUAL "")
++			    IF("${var}" STREQUAL "")
++				SET(${_attr} "${_value}")
++			    ELSE("${var}" STREQUAL "")
++				SET(${var} "${_value}")
++			    ENDIF("${var}" STREQUAL "")
++			ENDIF(_noReplace STREQUAL "" OR NOT DEFINED ${_attr})
++		    ENDIF(_actual_line MATCHES "[ \\t]*${attr_pattern}[ \\t]*${setting_sign}")
++
++		ENDIF(_actual_line MATCHES "#B$")
++
++	    ENDIF(NOT _line MATCHES "^[ \\t]*#H")
++	ENDFOREACH(_line ${_lines})
++	#SET(${var} "${_value}")
++
++    ENDMACRO(SETTING_FILE_GET_VARIABLES_PATTERN var attr_pattern setting_file)
++
++    MACRO(SETTING_FILE_GET_VARIABLE var attr_name setting_file)
++	SETTING_FILE_GET_VARIABLES_PATTERN(${var} "${attr_name}"
++	    "${setting_file}" ${ARGN})
++    ENDMACRO(SETTING_FILE_GET_VARIABLE var attr_name setting_file)
++
++    MACRO(SETTING_FILE_GET_ALL_VARIABLES setting_file)
++	SETTING_FILE_GET_VARIABLES_PATTERN("" "[A-Za-z_][A-Za-z0-9_.]*"
++	    "${setting_file}" ${ARGN})
++    ENDMACRO(SETTING_FILE_GET_ALL_VARIABLES setting_file)
++
++    MACRO(GET_ENV var default_value)
++	IF(${ARGC} GREATER 2)
++	    SET(_env "${ARGV2}")
++	ELSE(${ARGC} GREATER 2)
++	    SET(_env "${var}")
++	ENDIF(${ARGC} GREATER 2)
++
++	IF ("$ENV{${_env}}" STREQUAL "")
++	    SET(${var} "${default_value}")
++	ELSE("$ENV{${_env}}" STREQUAL "")
++	    SET(${var} "$ENV{${_env}}")
++	ENDIF("$ENV{${_env}}" STREQUAL "")
++	# MESSAGE("Variable ${var}=${${var}}")
++    ENDMACRO(GET_ENV var default_value)
++
++    MACRO(SET_VAR var untrimmedValue)
++	SET(_noUnQuoted "")
++	FOREACH(_arg ${ARGN})
++	    IF (${_arg} STREQUAL "NOUNQUOTE")
++		SET(_noUnQuoted "NOUNQUOTE")
++	    ENDIF(${_arg} STREQUAL "NOUNQUOTE")
++	ENDFOREACH(_arg)
++	#MESSAGE("untrimmedValue=${untrimmedValue}")
++	IF ("${untrimmedValue}" STREQUAL "")
++	    SET(${var} "")
++	ELSE("${untrimmedValue}" STREQUAL "")
++	    STRING_TRIM(trimmedValue "${untrimmedValue}" ${_noUnQuoted})
++	    #MESSAGE("***SET_VAR: trimmedValue=${trimmedValue}")
++	    SET(${var} "${trimmedValue}")
++	ENDIF("${untrimmedValue}" STREQUAL "")
++	#SET(value "${${var}}")
++	#MESSAGE("***SET_VAR: ${var}=|${value}|")
++    ENDMACRO(SET_VAR var untrimmedValue)
++
++ENDIF(NOT DEFINED _MANAGE_VARIABLE_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/ManageVersion.cmake ibus-chewing/Modules/ManageVersion.cmake
+--- ibus-chewing-orig/Modules/ManageVersion.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/ManageVersion.cmake	2011-09-20 09:05:47.000000000 +0900
+@@ -0,0 +1,115 @@
++# - Targets and macros that related to versioning.
++#
++# Includes:
++#   ManageVariable
++#   DateTimeFormat
++#
++# Included by:
++#   PackSource
++#
++# Defines following macros:
++#   LOAD_RELEASE_FILE(releaseFile)
++#   - Load release file information.
++#     Arguments:
++#     + releaseFile: release file to be read.
++#       This file should contain following definition:
++#       + PRJ_VER: Release version.
++#       + SUMMARY: Summary of the release. Will be output as CHANGE_SUMMARY.
++#          and a [Changes] section tag, below which listed the change in the
++#          release.
++#     This macro reads or define following variables:
++#     + RELEASE_TARGETS: Sequence of release targets.
++#     This macro outputs following files:
++#     + ChangeLog: Log of changes.
++#       Depends on ChangeLog.prev and releaseFile.
++#     This macro defines following targets:
++#     + version_check: Check whether the current PRJ_VER value match
++#       the PRJ_VER declared in releaseFile.
++#     This macro sets following variables:
++#     + PRJ_VER: Release version.
++#     + CHANGE_SUMMARY: Summary of changes.
++#     + CHANGELOG_ITEMS: Lines below the [Changes] tag.
++#     + RELEASE_FILE: The loaded release file.
++#     + PRJ_DOC_DIR: Documentation for the project.
++#       Default: ${DOC_DIR}/${PROJECT_NAME}-${PRJ_VER}
++#
++
++IF(NOT DEFINED _MANAGE_VERSION_CMAKE_)
++    SET(_MANAGE_VERSION_CMAKE_ "DEFINED")
++    INCLUDE(ManageMessage)
++    INCLUDE(CMakeVersion)
++    INCLUDE(ManageVariable)
++
++    MACRO(LOAD_RELEASE_FILE releaseFile)
++	COMMAND_OUTPUT_TO_VARIABLE(_grep_line grep -F "[Changes]" -n -m 1 ${releaseFile})
++
++	SET(RELEASE_FILE ${releaseFile})
++	#MESSAGE("_grep_line=|${_grep_line}|")
++	IF("${_grep_line}" STREQUAL "")
++	    MESSAGE(FATAL_ERROR "${releaseFile} does not have a [Changes] tag!")
++	ENDIF("${_grep_line}" STREQUAL "")
++	STRING(REGEX REPLACE ":.*" "" _line_num "${_grep_line}")
++
++
++	# Read header
++	SET(_release_file_header "${CMAKE_FEDORA_TMP_DIR}/${releaseFile}_HEADER")
++	MATH(EXPR _setting_line_num ${_line_num}-1)
++	COMMAND_OUTPUT_TO_VARIABLE(_releaseFile_head head -n ${_setting_line_num} ${releaseFile})
++	FILE(WRITE "${_release_file_header}" "${_releaseFile_head}")
++	SETTING_FILE_GET_ALL_VARIABLES("${_release_file_header}")
++	SET(CHANGE_SUMMARY "${SUMMARY}")
++
++	SET_COMPILE_ENV(PRJ_VER "${PRJ_VER}" DISPLAY STRING "Project Version")
++	SET_COMPILE_ENV(PRJ_DOC_DIR "${DOC_DIR}/${PROJECT_NAME}-${PRJ_VER}"
++	    DISPLAY PATH "Project docdir prefix")
++
++	# Read [Changes] Section
++	SET(_release_file_changes "${CMAKE_FEDORA_TMP_DIR}/${releaseFile}_CHANGES")
++	MATH(EXPR _line_num ${_line_num}+1)
++	COMMAND_OUTPUT_TO_VARIABLE(CHANGELOG_ITEMS tail -n +${_line_num} ${releaseFile})
++	FILE(WRITE "${_release_file_changes}" "${CHANGELOG_ITEMS}")
++
++	INCLUDE(DateTimeFormat)
++	FILE(READ "ChangeLog.prev" CHANGELOG_PREV)
++
++	SET(CMAKE_CACHE_TXT "CMakeCache.txt")
++	# PRJ_VER won't be updated until the removal of CMAKE_CACHE_TXT
++	# and execution of cmake .
++	SET(_version_check_cmd grep -e 'PRJ_VER=' ${RELEASE_FILE} |  tr -d '\\r\\n' | sed -e s/PRJ_VER=//)
++	ADD_CUSTOM_TARGET(version_check
++	    COMMAND ${CMAKE_COMMAND} -E echo "PRJ_VER=${PRJ_VER}"
++	    COMMAND ${CMAKE_COMMAND} -E echo "Release file="`eval \"${_version_check_cmd}\"`
++	    COMMAND test \"`${_version_check_cmd}`\" = \"\" -o \"`${_version_check_cmd}`\" = "${PRJ_VER}"
++	   || echo Inconsistent version detected. Fixing..
++	   && ${CMAKE_COMMAND} -E remove -f ${CMAKE_CACHE_TXT}
++	   && ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR}
++	   )
++
++	CONFIGURE_FILE(ChangeLog.in ChangeLog)
++	ADD_CUSTOM_COMMAND(OUTPUT ChangeLog  ${CMAKE_CACHE_TXT}
++	    COMMAND ${CMAKE_COMMAND} -E remove -f ${CMAKE_CACHE_TXT}
++	    COMMAND ${CMAKE_COMMAND} ${CMAKE_SOURCE_DIR}
++	    DEPENDS ${releaseFile} ChangeLog.prev
++	    COMMENT "ChangeLog or ${CMAKE_CACHE_TXT} is older than ${releaseFile}. Rebuilding"
++	    VERBATIM
++	    )
++
++	ADD_CUSTOM_TARGET(changelog ALL
++	    DEPENDS ChangeLog ${CMAKE_CACHE_TXT}
++	    )
++
++	#ADD_CUSTOM_COMMAND(OUTPUT ChangeLog
++	#    COMMAND ${CMAKE_COMMAND} -E echo "* ${TODAY_CHANGELOG} ${MAINTAINER} - ${PRJ_VER}" > ChangeLog
++	#    COMMAND cat ${releaseFile}_NO_PACK_CHANGELOG_ITEM  >> ChangeLog
++	#    COMMAND echo -e "\\n" >> ChangeLog
++	#    COMMAND cat ChangeLog.prev >> ChangeLog
++	#    DEPENDS ${CMAKE_SOURCE_DIR}/${releaseFile} ${CMAKE_SOURCE_DIR}/ChangeLog.prev
++	#    COMMENT "Building ChangeLog"
++	#    VERBATIM
++	#    )
++
++	# By this time,
++    ENDMACRO(LOAD_RELEASE_FILE releaseFile)
++
++ENDIF(NOT DEFINED _MANAGE_VERSION_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/PackRPM.cmake ibus-chewing/Modules/PackRPM.cmake
+--- ibus-chewing-orig/Modules/PackRPM.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/PackRPM.cmake	2011-07-01 14:20:21.000000000 +0900
+@@ -0,0 +1,313 @@
++# - RPM generation, maintaining (remove old rpm) and verification (rpmlint).
++# This module provides macros that provides various rpm building and
++# verification targets.
++#
++# Includes:
++#   ManageMessage
++#   ManageVariable
++#   PackSource
++#
++# Reads following variables:
++#   RPM_DIST_TAG: (optional) Current distribution tag such as el5, fc10.
++#     Default: Distribution tag from rpm --showrc
++#
++#   RPM_BUILD_TOPDIR: (optional) Directory of  the rpm topdir.
++#     Default: ${CMAKE_BINARY_DIR}
++#
++#   RPM_BUILD_SPECS: (optional) Directory of generated spec files
++#     and RPM-ChangeLog.
++#     Note this variable is not for locating
++#     SPEC template (project.spec.in), RPM-ChangeLog source files.
++#     These are located through the path of spec_in.
++#     Default: ${RPM_BUILD_TOPDIR}/SPECS
++#
++#   RPM_BUILD_SOURCES: (optional) Directory of source (tar.gz or zip) files.
++#     Default: ${RPM_BUILD_TOPDIR}/SOURCES
++#
++#   RPM_BUILD_SRPMS: (optional) Directory of source rpm files.
++#     Default: ${RPM_BUILD_TOPDIR}/SRPMS
++#
++#   RPM_BUILD_RPMS: (optional) Directory of generated rpm files.
++#     Default: ${RPM_BUILD_TOPDIR}/RPMS
++#
++#   RPM_BUILD_BUILD: (optional) Directory for RPM build.
++#     Default: ${RPM_BUILD_TOPDIR}/BUILD
++#
++#   RPM_BUILD_BUILDROOT: (optional) Directory for RPM build.
++#     Default: ${RPM_BUILD_TOPDIR}/BUILDROOT
++#
++# Defines following variables after include:
++#   RPM_IGNORE_FILES: A list of exclude file patterns for PackSource.
++#     This value is appended to PACK_SOURCE_IGNORE_FILES after including
++#     this module.
++#
++# Defines following Macros:
++#   PACK_RPM(var spec_in sourcePackage [fileDependencies] )
++#   - Generate spec and pack rpm  according to the spec file.
++#     It needs variable from PackSource, so call P before cno need to call it manually,
++#     note that environment variables for PackSource should be defined
++#     before calling this macro.
++#     Arguments:
++#     + var: The filename of srpm is outputted to this var.
++#            Path is excluded.
++#     + spec_in: RPM spec file template.
++#     + sourcePackage: Source package/tarball without path.
++#       The sourcePackage should be in RPM_BUILD_SOURCES.
++#     + fileDependencies: other files that rpm targets depends on.
++#     Targets:
++#     + srpm: Build srpm (rpmbuild -bs).
++#     + rpm: Build rpm and srpm (rpmbuild -bb)
++#     + rpmlint: Run rpmlint to generated rpms.
++#     + clean_rpm": Clean all rpm and build files.
++#     + clean_pkg": Clean all source packages, rpm and build files.
++#     + clean_old_rpm: Remove old rpm and build files.
++#     + clean_old_pkg: Remove old source packages and rpms.
++#     This macro defines following variables:
++#     + PRJ_RELEASE: Project release with distribution tags. (e.g. 1.fc13)
++#     + PRJ_RELEASE_NO: Project release number, without distribution tags. (e.g. 1)
++#     + PRJ_SRPM_PATH: Filename of generated SRPM file, including relative path.
++#
++#   USE_MOCK(spec_in)
++#   - Add mock related targets.
++#     Arguments:
++#     + spec_in: RPM spec input template.
++#     Targets:
++#     + rpm_mock_i386: Make i386 rpm
++#     + rpm_mock_x86_64: Make x86_64 rpm
++#     This macor reads following variables?:
++#     + MOCK_RPM_DIST_TAG: Prefix of mock configure file, such as "fedora-11", "fedora-rawhide", "epel-5".
++#         Default: Convert from RPM_DIST_TAG
++#
++
++IF(NOT DEFINED _PACK_RPM_CMAKE_)
++    SET (_PACK_RPM_CMAKE_ "DEFINED")
++
++    INCLUDE(ManageMessage)
++    INCLUDE(ManageVariable)
++    INCLUDE(PackSource)
++    SET (SPEC_FILE_WARNING "This file is generated, please modified the .spec.in file instead!")
++
++    IF(NOT DEFINED RPM_DIST_TAG)
++	EXECUTE_PROCESS(COMMAND rpm --showrc
++	    COMMAND grep -E "dist[[:space:]]*\\."
++	    COMMAND sed -e "s/^.*dist\\s*\\.//"
++	    COMMAND tr \\n \\t
++	    COMMAND sed  -e s/\\t//
++	    OUTPUT_VARIABLE RPM_DIST_TAG)
++    ENDIF(NOT DEFINED RPM_DIST_TAG)
++
++    IF(NOT DEFINED RPM_BUILD_TOPDIR)
++	SET(RPM_BUILD_TOPDIR ${CMAKE_BINARY_DIR})
++    ENDIF(NOT DEFINED RPM_BUILD_TOPDIR)
++
++    IF(NOT DEFINED RPM_BUILD_SPECS)
++	SET(RPM_BUILD_SPECS "${RPM_BUILD_TOPDIR}/SPECS")
++    ENDIF(NOT DEFINED RPM_BUILD_SPECS)
++
++    IF(NOT DEFINED RPM_BUILD_SOURCES)
++	SET(RPM_BUILD_SOURCES "${RPM_BUILD_TOPDIR}/SOURCES")
++    ENDIF(NOT DEFINED RPM_BUILD_SOURCES)
++
++    IF(NOT DEFINED RPM_BUILD_SRPMS)
++	SET(RPM_BUILD_SRPMS "${RPM_BUILD_TOPDIR}/SRPMS")
++    ENDIF(NOT DEFINED RPM_BUILD_SRPMS)
++
++    IF(NOT DEFINED RPM_BUILD_RPMS)
++	SET(RPM_BUILD_RPMS "${RPM_BUILD_TOPDIR}/RPMS")
++    ENDIF(NOT DEFINED RPM_BUILD_RPMS)
++
++    IF(NOT DEFINED RPM_BUILD_BUILD)
++	SET(RPM_BUILD_BUILD "${RPM_BUILD_TOPDIR}/BUILD")
++    ENDIF(NOT DEFINED RPM_BUILD_BUILD)
++
++    IF(NOT DEFINED RPM_BUILD_BUILDROOT)
++	SET(RPM_BUILD_BUILDROOT "${RPM_BUILD_TOPDIR}/BUILDROOT")
++    ENDIF(NOT DEFINED RPM_BUILD_BUILDROOT)
++
++    # Add RPM build directories in ignore file list.
++    GET_FILENAME_COMPONENT(_rpm_build_sources_basename ${RPM_BUILD_SOURCES} NAME)
++    GET_FILENAME_COMPONENT(_rpm_build_srpms_basename ${RPM_BUILD_SRPMS} NAME)
++    GET_FILENAME_COMPONENT(_rpm_build_rpms_basename ${RPM_BUILD_RPMS} NAME)
++    GET_FILENAME_COMPONENT(_rpm_build_build_basename ${RPM_BUILD_BUILD} NAME)
++    GET_FILENAME_COMPONENT(_rpm_build_buildroot_basename ${RPM_BUILD_BUILDROOT} NAME)
++    SET(RPM_IGNORE_FILES
++	"/${_rpm_build_sources_basename}/" "/${_rpm_build_srpms_basename}/" "/${_rpm_build_rpms_basename}/"
++	"/${_rpm_build_build_basename}/" "/${_rpm_build_buildroot_basename}/" "debug.*s.list")
++
++    SET(PACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES}
++	${RPM_IGNORE_FILES})
++
++    MACRO(PACK_RPM_GET_ARCH var spec_in)
++	SETTING_FILE_GET_VARIABLE(_archStr BuildArch ${spec_in} ":")
++	IF(NOT _archStr STREQUAL "noarch")
++	    SET(_archStr ${CMAKE_HOST_SYSTEM_PROCESSOR})
++	ENDIF(NOT _archStr STREQUAL "noarch")
++	SET(${var} ${_archStr})
++    ENDMACRO(PACK_RPM_GET_ARCH var spec_in)
++
++
++    MACRO(PACK_RPM var spec_in sourcePackage)
++	IF(NOT EXISTS ${spec_in})
++	    M_MSG(${M_FATAL} "File ${spec_in} not found!")
++	ENDIF(NOT EXISTS ${spec_in})
++
++	FIND_PROGRAM(RPMBUILD NAMES "rpmbuild")
++	IF(${RPMBUILD} STREQUAL "RPMBUILD-NOTFOUND")
++	    M_MSG(${M_OFF} "rpmbuild is not found in PATH, rpm build support is disabled.")
++	ELSE(${RPMBUILD} STREQUAL "RPMBUILD-NOTFOUND")
++	    GET_FILENAME_COMPONENT(_specInDir "${spec_in}" PATH)
++	    # Get release number from spec_in
++	    SET(fileDependencies ${ARGN})
++	    SETTING_FILE_GET_VARIABLE(_releaseStr Release ${spec_in} ":")
++	    STRING(REPLACE "%{?dist}" ".${RPM_DIST_TAG}" PRJ_RELEASE ${_releaseStr})
++	    STRING(REPLACE "%{?dist}" "" PRJ_RELEASE_NO ${_releaseStr})
++	    #MESSAGE("_releaseTag=${_releaseTag} _releaseStr=${_releaseStr}")
++
++	    # Update RPM_ChangeLog
++	    # Use this instead of FILE(READ is to avoid error when reading '\'
++	    # character.
++	    EXECUTE_PROCESS(COMMAND cat "${_specInDir}/RPM-ChangeLog.prev"
++		OUTPUT_VARIABLE RPM_CHANGELOG_PREV
++		OUTPUT_STRIP_TRAILING_WHITESPACE)
++
++	    CONFIGURE_FILE(${_specInDir}/RPM-ChangeLog.in ${RPM_BUILD_SPECS}/RPM-ChangeLog)
++
++	    # Generate spec
++	    CONFIGURE_FILE(${spec_in} ${RPM_BUILD_SPECS}/${PROJECT_NAME}.spec)
++
++	    SET(${var} "${PROJECT_NAME}-${PRJ_VER}-${PRJ_RELEASE}.src.rpm")
++	    SET(_prj_srpm_path "${RPM_BUILD_SRPMS}/${${var}}")
++	    PACK_RPM_GET_ARCH(_archStr "${spec_in}")
++	    SET(_prj_rpm_path "${RPM_BUILD_RPMS}/${_archStr}/${PROJECT_NAME}-${PRJ_VER}-${PRJ_RELEASE}.${_archStr}.rpm")
++
++	    #-------------------------------------------------------------------
++	    # RPM build commands and targets
++
++	    ADD_CUSTOM_COMMAND(OUTPUT ${RPM_BUILD_BUILD}
++		COMMAND ${CMAKE_COMMAND} -E make_directory ${RPM_BUILD_BUILD}
++		)
++
++	    # Don't worry about SRPMS, RPMS and BUILDROOT, it will be created by rpmbuild
++	    ADD_CUSTOM_COMMAND(OUTPUT ${_prj_srpm_path} ${RPM_BUILD_SRPMS} ${RPM_BUILD_RPMS}
++		COMMAND ${RPMBUILD}-md5 -bs ${RPM_BUILD_SPECS}/${PROJECT_NAME}.spec
++		--define '_sourcedir ${RPM_BUILD_SOURCES}'
++		--define '_builddir ${RPM_BUILD_BUILD}'
++		--define '_srcrpmdir ${RPM_BUILD_SRPMS}'
++		--define '_rpmdir ${RPM_BUILD_RPMS}'
++		--define '_specdir ${RPM_BUILD_SPECS}'
++		DEPENDS ${RPM_BUILD_SPECS}/${PROJECT_NAME}.spec
++		${RPM_BUILD_SOURCES}/${sourcePackage} ${fileDependencies}
++		COMMENT "Building srpm"
++		)
++
++	    ADD_CUSTOM_TARGET(srpm
++		DEPENDS ${_prj_srpm_path}
++		)
++
++	    ADD_DEPENDENCIES(srpm pack_src)
++	    # RPMs (except SRPM)
++
++	    ADD_CUSTOM_COMMAND(OUTPUT ${_prj_rpm_path} ${RPM_BUILD_BUILD} ${RPM_BUILD_BUILDROOT}
++		COMMAND ${RPMBUILD} -bb  ${RPM_BUILD_SPECS}/${PROJECT_NAME}.spec
++		--define '_sourcedir ${RPM_BUILD_SOURCES}'
++		--define '_builddir ${RPM_BUILD_BUILD}'
++		--define '_buildrootdir ${RPM_BUILD_BUILDROOT}'
++		--define '_srcrpmdir ${RPM_BUILD_SRPMS}'
++		--define '_rpmdir ${RPM_BUILD_RPMS}'
++		--define '_specdir ${RPM_BUILD_SPECS}'
++		DEPENDS ${_prj_srpm_path} ${RPM_BUILD_RPMS}
++		COMMENT "Building rpm"
++		)
++
++	    ADD_CUSTOM_TARGET(rpm
++		DEPENDS ${_prj_rpm_path}
++		)
++
++	    ADD_DEPENDENCIES(rpm srpm)
++
++	    ADD_CUSTOM_TARGET(install_rpms
++		find ${RPM_BUILD_RPMS}/${_archStr}
++		-name '${PROJECT_NAME}*-${PRJ_VER}-${PRJ_RELEASE_NO}.*.${_archStr}.rpm' !
++		-name '${PROJECT_NAME}-debuginfo-${PRJ_RELEASE_NO}.*.${_archStr}.rpm'
++		-print -exec sudo rpm --upgrade --hash --verbose '{}' '\\;'
++		COMMENT "Install all rpms except debuginfo"
++		)
++
++	    ADD_DEPENDENCIES(install_rpms rpm)
++
++	    ADD_CUSTOM_TARGET(rpmlint find .
++		-name '${PROJECT_NAME}*-${PRJ_VER}-${PRJ_RELEASE_NO}.*.rpm'
++		-print -exec rpmlint '{}' '\\;'
++		DEPENDS ${_prj_srpm_path} ${_prj_rpm_path}
++		)
++
++	    ADD_DEPENDENCIES(rpmlint version_check)
++
++	    ADD_CUSTOM_TARGET(clean_old_rpm
++		COMMAND find .
++		-name '${PROJECT_NAME}*.rpm' ! -name '${PROJECT_NAME}*-${PRJ_VER}-${PRJ_RELEASE_NO}.*.rpm'
++		-print -delete
++		COMMAND find ${RPM_BUILD_BUILD}
++		-path '${PROJECT_NAME}*' ! -path '${RPM_BUILD_BUILD}/${PROJECT_NAME}-${PRJ_VER}-*'
++		-print -delete
++		COMMENT "Cleaning old rpms and build."
++		)
++
++	    ADD_CUSTOM_TARGET(clean_old_pkg
++		)
++
++	    ADD_DEPENDENCIES(clean_old_pkg clean_old_rpm clean_old_pack_src)
++
++	    ADD_CUSTOM_TARGET(clean_rpm
++		COMMAND find . -name '${PROJECT_NAME}*.rpm' -print -delete
++		COMMENT "Cleaning rpms.."
++		)
++	    ADD_CUSTOM_TARGET(clean_pkg
++		)
++
++	    ADD_DEPENDENCIES(clean_rpm clean_old_rpm)
++	    ADD_DEPENDENCIES(clean_pkg clean_rpm clean_pack_src)
++
++	ENDIF(${RPMBUILD} STREQUAL "RPMBUILD-NOTFOUND")
++    ENDMACRO(PACK_RPM var spec_in sourcePackage)
++
++    MACRO(USE_MOCK spec_in)
++	FIND_PROGRAM(MOCK mock)
++	IF(MOCK STREQUAL "MOCK-NOTFOUND")
++	    M_MSG(${M_WARN} "mock is not found in PATH, mock support disabled.")
++	ELSE(MOCK STREQUAL "MOCK-NOTFOUND")
++	    PACK_RPM_GET_ARCH(_archStr ${spec_in})
++	    IF(NOT _archStr STREQUAL "noarch")
++		IF(NOT DEFINED MOCK_RPM_DIST_TAG)
++		    STRING(REGEX MATCH "^fc([1-9][0-9]*)"  _fedora_mock_dist "${RPM_DIST_TAG}")
++		    STRING(REGEX MATCH "^el([1-9][0-9]*)"  _el_mock_dist "${RPM_DIST_TAG}")
++
++		    IF (_fedora_mock_dist)
++			STRING(REGEX REPLACE "^fc([1-9][0-9]*)" "fedora-\\1" MOCK_RPM_DIST_TAG "${RPM_DIST_TAG}")
++		    ELSEIF (_el_mock_dist)
++			STRING(REGEX REPLACE "^el([1-9][0-9]*)" "epel-\\1" MOCK_RPM_DIST_TAG "${RPM_DIST_TAG}")
++		    ELSE (_fedora_mock_dist)
++			SET(MOCK_RPM_DIST_TAG "fedora-devel")
++		    ENDIF(_fedora_mock_dist)
++		ENDIF(NOT DEFINED MOCK_RPM_DIST_TAG)
++
++		#MESSAGE ("MOCK_RPM_DIST_TAG=${MOCK_RPM_DIST_TAG}")
++		SET(_prj_srpm_path "${RPM_BUILD_SRPMS}/${PROJECT_NAME}-${PRJ_VER}-${PRJ_RELEASE}.src.rpm")
++		ADD_CUSTOM_TARGET(rpm_mock_i386
++		    COMMAND ${CMAKE_COMMAND} -E make_directory ${RPM_BUILD_RPMS}/i386
++		    COMMAND ${MOCK} -r  "${MOCK_RPM_DIST_TAG}-i386" --resultdir="${RPM_BUILD_RPMS}/i386" ${_prj_srpm_path}
++		    DEPENDS ${_prj_srpm_path}
++		    )
++
++		ADD_CUSTOM_TARGET(rpm_mock_x86_64
++		    COMMAND ${CMAKE_COMMAND} -E make_directory ${RPM_BUILD_RPMS}/x86_64
++		    COMMAND ${MOCK} -r  "${MOCK_RPM_DIST_TAG}-x86_64" --resultdir="${RPM_BUILD_RPMS}/x86_64" ${_prj_srpm_path}
++		    DEPENDS ${_prj_srpm_path}
++		    )
++	    ENDIF(NOT _archStr STREQUAL "noarch")
++	ENDIF(MOCK STREQUAL "MOCK-NOTFOUND")
++
++    ENDMACRO(USE_MOCK)
++
++ENDIF(NOT DEFINED _PACK_RPM_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/PackSource.cmake ibus-chewing/Modules/PackSource.cmake
+--- ibus-chewing-orig/Modules/PackSource.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/PackSource.cmake	2011-07-01 12:13:21.000000000 +0900
+@@ -0,0 +1,191 @@
++# - Pack source helper module
++# By default CPack pack everything under the source directory, this is usually
++# undesirable. We avoid this by using the sane default ignore list.
++#
++# Includes:
++#   ManageVersion
++#   CPack
++#
++# Included by:
++#   PackRPM
++#
++# Read and Defines following variable:
++#   PACK_SOURCE_IGNORE_FILES_DEFAULT: Default list of file patterns
++#     that are normally exclude from the source package.
++#     Override it by setting it before INCLUDE(PackSource).
++# Defines following target:
++#     pack_remove_old: Remove old source package files.
++# Defines following macro:
++#   PACK_SOURCE(var outputDir [generator])
++#   - Pack source files as <projectName>-<PRJ_VER>-Source.<packFormat>,
++#     Arguments:
++#     + var: The filename of source package is outputted to this var.
++#            Path is excluded.
++#     + outputDir: Directory to write source tarball.
++#     + generator: (Optional) Method to make tarball. Basically this argument
++#       is passed as CPACK_GENERATOR. Default to TGZ.
++#     Variable to be read:
++#     + PROJECT_NAME: Project name
++#     + VENDOR: Organization that issue this project.
++#     + PRJ_VER: Project version
++#     + PRJ_SUMMARY: (Optional) Project summary
++#     + PACK_SOURCE_IGNORE_FILES: A list of regex filename pattern to indicate
++#       the files to be excluded. Note that cmake generated file
++#       (PACK_SOURCE_IGNORE_FILE_CMAKE) is already in this list.
++#     Define following variables:
++#     + PACK_SOURCE_FILE_LIST: List of files to be packed to tarball.
++#     + PACK_SOURCE_FILE_EXTENSION: File extension of the source package
++#       files.
++#     Target:
++#     + pack_src: Pack source files like package_source.
++#       This target depends on version_check.
++#     + clean_pack_src: Remove all source packages.
++#     + clean_old_pack_src: Remove all old source package.
++#       This target depends on version_check.
++##
++IF(NOT DEFINED _PACK_SOURCE_CMAKE_)
++    SET (_PACK_SOURCE_CMAKE_ "DEFINED")
++    SET(PACK_SOURCE_IGNORE_FILES_DEFAULT
++	"/\\\\.svn/"  "/CVS/" "/\\\\.git/"  "\\\\.gitignore$" "/\\\\.hg/"
++	"/\\\\.hgignore$"
++	"~$" "\\\\.swp$" "\\\\.log$" "\\\\.bak$" "\\\\.old$"
++	"\\\\.gmo$" "\\\\.cache$"
++	"\\\\.tar.gz$" "\\\\.tar.bz2$" "/src/config\\\\.h$" "NO_PACK")
++
++    SET(PACK_SOURCE_IGNORE_FILES_CMAKE "/CMakeFiles/" "_CPack_Packages/" "/Testing/"
++	"\\\\.directory$" "CMakeCache\\\\.txt$"
++	"/install_manifest.txt$"
++	"/cmake_install\\\\.cmake$" "/cmake_uninstall\\\\.cmake$""/CPack.*\\\\.cmake$" "/CTestTestfile\\\\.cmake$"
++	"Makefile$"
++	)
++
++    SET(PACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES}
++	${PACK_SOURCE_IGNORE_FILES_CMAKE} ${PACK_SOURCE_IGNORE_FILES_DEFAULT})
++
++    INCLUDE(ManageVersion)
++
++    # Internal:  PACK_SOURCE_FILES(var)
++    #   - Return all source file to be packed.
++    #     This is called by PACK_SOURCE(),
++    #     So no need to call it again.
++    #     Arguments:
++    #     + var: A list of relative filenames that will be in the tarball.
++    MACRO(PACK_SOURCE_FILES var)
++	SET(_filelist "")
++	FILE(GLOB_RECURSE _ls "*")
++	STRING(REPLACE "\\\\" "\\" _ignore_files "${PACK_SOURCE_IGNORE_FILES}")
++	FOREACH(_file ${_ls})
++	    SET(_matched 0)
++	    FOREACH(filePattern ${_ignore_files})
++		#MESSAGE("filePattern=${filePattern}")
++		IF(NOT _matched)
++		    IF(_file MATCHES "${filePattern}")
++			SET(_matched 1)
++		    ENDIF(_file MATCHES "${filePattern}")
++		ENDIF(NOT _matched)
++	    ENDFOREACH(filePattern ${_ignore_files})
++	    IF(NOT _matched)
++		FILE(RELATIVE_PATH _file ${CMAKE_SOURCE_DIR} "${_file}")
++		#MESSAGE("_file=${_file}")
++		LIST(APPEND _filelist "${_file}")
++	    ENDIF(NOT _matched)
++	ENDFOREACH(_file ${_ls})
++	SET(${var} ${_filelist})
++	#MESSAGE("PACK_SOURCE_IGNORE_FILES=${_ignore_files}")
++    ENDMACRO(PACK_SOURCE_FILES var)
++
++    MACRO(PACK_SOURCE var outputDir)
++	#MESSAGE("PACK_SOURCE_IGNORE_FILES=${PACK_SOURCE_IGNORE_FILES}")
++
++	IF(PRJ_VER STREQUAL "")
++	    MESSAGE(FATAL_ERROR "PRJ_VER not defined")
++	ENDIF(PRJ_VER STREQUAL "")
++	IF(${ARGV3})
++	    SET(CPACK_GENERATOR "${ARGV3}")
++	ELSE(${ARGV3})
++	    SET(CPACK_GENERATOR "TGZ")
++	ENDIF(${ARGV3})
++	SET(CPACK_SOURCE_GENERATOR ${CPACK_GENERATOR})
++	IF(${CPACK_GENERATOR} STREQUAL "TGZ")
++	    SET(PACK_SOURCE_FILE_EXTENSION "tar.gz")
++	ELSEIF(${CPACK_GENERATOR} STREQUAL "TBZ2")
++	    SET(PACK_SOURCE_FILE_EXTENSION "tar.bz2")
++	ELSEIF(${CPACK_GENERATOR} STREQUAL "ZIP")
++	    SET(PACK_SOURCE_FILE_EXTENSION "zip")
++	ENDIF(${CPACK_GENERATOR} STREQUAL "TGZ")
++
++	SET(CPACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES})
++	SET(CPACK_PACKAGE_VERSION ${PRJ_VER})
++
++	# Get relative path of outputDir
++	FILE(RELATIVE_PATH _outputDir_rel ${CMAKE_BINARY_DIR} ${outputDir})
++	#MESSAGE("#_outputDir_rel=${_outputDir_rel}")
++
++	IF(EXISTS ${CMAKE_SOURCE_DIR}/COPYING)
++	    SET(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/README)
++	ENDIF(EXISTS ${CMAKE_SOURCE_DIR}/COPYING)
++
++	IF(EXISTS ${CMAKE_SOURCE_DIR}/README)
++	    SET(CPACK_PACKAGE_DESCRIPTION_FILE ${CMAKE_SOURCE_DIR}/README)
++	ENDIF(EXISTS ${CMAKE_SOURCE_DIR}/README)
++
++	IF(DEFINED PRJ_SUMMARY)
++	    SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PRJ_SUMMARY}")
++	ENDIF(DEFINED PRJ_SUMMARY)
++
++	SET(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PRJ_VER}-Source")
++	SET(${var} "${CPACK_SOURCE_PACKAGE_FILE_NAME}.${PACK_SOURCE_FILE_EXTENSION}")
++
++	SET(CPACK_PACKAGE_VENDOR "${VENDOR}")
++	PACK_SOURCE_FILES(PACK_SOURCE_FILE_LIST)
++
++	INCLUDE(CPack)
++	ADD_CUSTOM_COMMAND(OUTPUT ${_outputDir_rel}
++	    COMMAND cmake -E make_directory ${_outputDir_rel}
++	    COMMENT "Making package output directory."
++	    )
++
++	IF("${_outputDir_rel}" STREQUAL ".")
++	    ADD_CUSTOM_COMMAND(OUTPUT "${_outputDir_rel}/${${var}}"
++		COMMAND make package_source
++		DEPENDS ${CMAKE_SOURCE_DIR}/ChangeLog
++	           ${RELEASE_FILE} ${PACK_SOURCE_FILE_LIST}
++		COMMENT "Packing the source"
++		)
++	ELSE("${_outputDir_rel}" STREQUAL ".")
++	    ADD_CUSTOM_COMMAND(OUTPUT "${_outputDir_rel}/${${var}}"
++		COMMAND make package_source
++		COMMAND cmake -E copy ${${var}} "${_outputDir_rel}/"
++		COMMAND cmake -E remove ${${var}}
++		DEPENDS ${CMAKE_SOURCE_DIR}/ChangeLog
++		    ${RELEASE_FILE} ${PACK_SOURCE_FILE_LIST} ${_outputDir_rel}
++		COMMENT "Packing the source"
++		)
++	ENDIF("${_outputDir_rel}" STREQUAL ".")
++
++	ADD_CUSTOM_TARGET(pack_src
++	    DEPENDS "${_outputDir_rel}/${${var}}"
++	    )
++
++	ADD_DEPENDENCIES(pack_src version_check)
++
++	ADD_CUSTOM_TARGET(clean_old_pack_src
++	    COMMAND find .
++	    -name '${PROJECT_NAME}*.${PACK_SOURCE_FILE_EXTENSION}' ! -name '${PROJECT_NAME}-${PRJ_VER}-*.${PACK_SOURCE_FILE_EXTENSION}'
++	    -print -delete
++	    COMMENT "Cleaning old source packages"
++	    )
++
++	ADD_DEPENDENCIES(clean_old_pack_src changelog version_check)
++
++	ADD_CUSTOM_TARGET(clean_pack_src
++	    COMMAND find .
++	    -name '${PROJECT_NAME}*.${PACK_SOURCE_FILE_EXTENSION}'
++	    -print -delete
++	    COMMENT "Cleaning all source packages"
++	    )
++    ENDMACRO(PACK_SOURCE var outputDir)
++
++
++ENDIF(NOT DEFINED _PACK_SOURCE_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/UseDoxygen.cmake ibus-chewing/Modules/UseDoxygen.cmake
+--- ibus-chewing-orig/Modules/UseDoxygen.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/UseDoxygen.cmake	2011-04-14 14:52:47.000000000 +0900
+@@ -0,0 +1,33 @@
++# - Generate Doxyfile
++# This module is for doxygen generation.
++# Defines following macros:
++#   USE_DOXYGEN(doxygen_in doc_dir)
++#   - This macro generate documents according to doxygen template.
++#     Arguments:
++#     + doxygen_in: Doxygen template file.
++#     + doc_dir: Document source directory to be copied from.
++#     Reads following variable:
++#     + PROJECT_DOC_DIR: Directory for document
++#
++#
++IF(NOT DEFINED _USE_DOXYGEN_CMAKE_)
++    SET(_USE_DOXYGEN_CMAKE_ "DEFINED")
++    SET(PACK_SOURCE_IGNORE_FILES ${PACK_SOURCE_IGNORE_FILES} "/Doxyfile$")
++
++    MACRO(USE_DOXYGEN doxygen_in doc_dir)
++	IF(PROJECT_DOC_DIR STREQUAL "")
++	    MESSAGE(FATAL_ERROR "PROJECT_DOC_DIR undefined. Use macro SET_USUAL_COMPILE_ENV() before USE_DOXYGEN")
++	ENDIF(PROJECT_DOC_DIR STREQUAL "")
++	FIND_PACKAGE(Doxygen)
++	CONFIGURE_FILE(${doxygen_in} Doxyfile)
++
++	ADD_CUSTOM_TARGET(doxygen
++	    COMMAND "${DOXYGEN}" "Doxyfile"
++	    )
++
++	INSTALL(DIRECTORY ${doc_dir}
++	    DESTINATION "${PROJECT_DOC_DIR}"
++	    )
++    ENDMACRO(USE_DOXYGEN doxygen_template)
++ENDIF(NOT DEFINED _USE_DOXYGEN_CMAKE_)
++
+diff -Nru ibus-chewing-orig/Modules/UseGConf.cmake ibus-chewing/Modules/UseGConf.cmake
+--- ibus-chewing-orig/Modules/UseGConf.cmake	1970-01-01 09:00:00.000000000 +0900
++++ ibus-chewing/Modules/UseGConf.cmake	2011-04-14 14:52:47.000000000 +0900
+@@ -0,0 +1,63 @@
++# - GConf relative targets such as install/unstall schemas.
++# This module finds gconftool-2 or gconftool for GConf manipulation.
++#
++# Reads following variables:
++# GCONF_SCHEMAS_FILE: Schema file.
++#         Default: "${PROJECT_NAME}.schemas"
++#
++# GCONF_SCHEMAS_INSTALLED_DIR: Direct of installed schemas files.
++#         Default: "${SYSCONF_INSTALL_DIR}/gconf/schemas"
++#
++# GCONF_CONFIG_SOURCE: configuration source.
++#         Default: "" (Use the system default)
++#
++# Defines following targets:
++#   install_schemas: install schemas
++#
++#   uninstall_schemas: uninstall schemas
++#
++
++IF(NOT DEFINED _USE_GCONF_CMAKE_)
++    FIND_PROGRAM(GCONFTOOL NAMES gconftool-2 gconftool)
++
++    IF(${GCONFTOOL} STREQUAL "GCONFTOOL-NOTFOUND")
++	MESSAGE(FATAL_ERROR "gconftool and gconftool-2 are not found, please install GConf or GConf2.")
++    ENDIF()
++
++    IF (NOT DEFINED GCONF_SCHEMAS_FILE)
++	SET(GCONF_SCHEMAS_FILE  "${PROJECT_NAME}.schemas")
++    ENDIF(NOT DEFINED GCONF_SCHEMAS_FILE)
++
++    GET_FILENAME_COMPONENT(_gconf_schemas_basename ${GCONF_SCHEMAS_FILE} NAME)
++
++    IF (NOT DEFINED GCONF_SCHEMAS_INSTALLED_DIR)
++	SET(GCONF_SCHEMAS_INSTALLED_DIR  "${SYSCONF_INSTALL_DIR}/gconf/schemas")
++    ENDIF(NOT DEFINED GCONF_SCHEMAS_INSTALLED_DIR)
++
++    IF (NOT DEFINED GCONF_CONFIG_SOURCE)
++	SET(GCONF_CONFIG_SOURCE "")
++    ENDIF(NOT DEFINED GCONF_CONFIG_SOURCE)
++    SET(ENV{GCONF_CONFIG_SOURCE} ${GCONF_CONFIG_SOURCE})
++
++
++    ADD_CUSTOM_TARGET(uninstall_schemas
++	COMMAND GCONF_CONFIG_SOURCE=${GCONF_CONFIG_SOURCE}
++	${GCONFTOOL} --makefile-uninstall-rule
++	${GCONF_SCHEMAS_INSTALLED_DIR}/${_gconf_schemas_basename}
++	COMMENT "Uninstalling schemas"
++	)
++
++    ADD_CUSTOM_TARGET(install_schemas
++	COMMAND cmake -E copy ${GCONF_SCHEMAS_FILE} ${GCONF_SCHEMAS_INSTALLED_DIR}/${_gconf_schemas_basename}
++	COMMAND GCONF_CONFIG_SOURCE=${GCONF_CONFIG_SOURCE}
++	${GCONFTOOL} --makefile-install-rule
++	${GCONF_SCHEMAS_INSTALLED_DIR}/${_gconf_schemas_basename}
++	DEPENDS ${GCONF_SCHEMAS_FILE}
++	COMMENT "Installing schemas"
++	)
++
++    INSTALL(FILES ${GCONF_SCHEMAS_FILE}
++	DESTINATION "${GCONF_SCHEMAS_INSTALLED_DIR}")
++ENDIF(NOT DEFINED _USE_GCONF_CMAKE_)
++
++
