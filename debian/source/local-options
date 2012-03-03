@@ -1,2 +1,2 @@
-apply-patches
+unapply-patches
 abort-on-upstream-changes
