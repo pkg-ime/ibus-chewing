@@ -1,1 +1,3 @@
-cmake-fedora-modules.diff
+0001-follow-ibus-property-abi-change.patch
+0002-fix_focus_stealing.patch
+1001-cmake-fedora-modules.patch

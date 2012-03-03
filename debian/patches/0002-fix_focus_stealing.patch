@@ -1,0 +1,32 @@
+Author: Ruei-Yuan Lu <RueiYuan.Lu@gmail.com>
+Date: Wed, 22 Feb 2012 21:04:52 +0800
+Description: ibus-chewing: A patch for fixing bug#630331, #660863
+ Here is a patch that fixes bug #630331, "ibus-chewing has annoying pop-up when
+ enabling IME, causing focus to change".
+ .
+ This patch can be applied to ibus-chewing-1.3.5.20100706 (squeeze) and above
+ (up to 1.3.10+clean-1 wheezy) .
+ .
+ According to Debian bug report page, this issue should be fixed in 1.3.9.2-3;
+ however, I couldn't find any patch that fixes this problem.
+ .
+ The source package only contains the following patches:
+ .
+ escape-to-close-candidate-window-on-plain-zhuyin.patch
+ ibus-chewing-696864-abrt-ibus-1.4.patch
+ fix-plain-zhuyin-with-space-as-selection-problem.patch
+ .
+ I also tested with all versions newer than 1.3.9.2-3, this issue still exists.
+ Please consider applying this patch to fix this bug that exists for almost two
+ years, thank you.
+--- a/src/MakerDialog.gob
++++ b/src/MakerDialog.gob
+@@ -364,7 +364,7 @@
+ 		caculate_max_label_width_callback, (gpointer) &wAlignment);
+ 	g_hash_table_foreach(self->_priv->notebookContentTable,
+ 		set_label_width_callback, (gpointer) &wAlignment);
+-	gtk_widget_show_all(GTK_WIDGET(self));
++	gtk_widget_show_all(GTK_WIDGET(self->dialog_notebook));
+     }
+ 
+     public void reload_property_value(self, const gchar *key){

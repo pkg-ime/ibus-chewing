@@ -3,9 +3,8 @@ Description: cmake-fedora 0.8.1
  Downloaded from https://fedorahosted.org/releases/c/m/cmake-fedora/ 
  as cmake-fedora-0.8.1-modules-only.tar.gz See also at
  http://git.fedorahosted.org/git/?p=cmake-fedora.git
-diff -Nru ibus-chewing-orig/Modules/cmake_uninstall.cmake.in ibus-chewing/Modules/cmake_uninstall.cmake.in
---- ibus-chewing-orig/Modules/cmake_uninstall.cmake.in	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/cmake_uninstall.cmake.in	2011-04-14 14:52:47.000000000 +0900
+--- /dev/null
++++ b/Modules/cmake_uninstall.cmake.in
 @@ -0,0 +1,21 @@
 +IF(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
 +  MESSAGE(FATAL_ERROR "Cannot find install manifest: \"@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt\"")
@@ -28,9 +27,8 @@ diff -Nru ibus-chewing-orig/Modules/cmake_uninstall.cmake.in ibus-chewing/Module
 +    MESSAGE(STATUS "File \"$ENV{DESTDIR}${file}\" does not exist.")
 +  ENDIF(EXISTS "$ENV{DESTDIR}${file}")
 +ENDFOREACH(file)
-diff -Nru ibus-chewing-orig/Modules/CMakeVersion.cmake ibus-chewing/Modules/CMakeVersion.cmake
---- ibus-chewing-orig/Modules/CMakeVersion.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/CMakeVersion.cmake	2011-09-20 09:05:22.000000000 +0900
+--- /dev/null
++++ b/Modules/CMakeVersion.cmake
 @@ -0,0 +1,29 @@
 +# - Cmake version detection.
 +# This module is mainly for provide an unified environment for CMake 2.4
@@ -61,9 +59,8 @@ diff -Nru ibus-chewing-orig/Modules/CMakeVersion.cmake ibus-chewing/Modules/CMak
 +    ENDIF(NOT CMAKE_VERSION)
 +ENDIF(NOT DEFINED _CMAKE_VERSION_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/DateTimeFormat.cmake ibus-chewing/Modules/DateTimeFormat.cmake
---- ibus-chewing-orig/Modules/DateTimeFormat.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/DateTimeFormat.cmake	2011-08-03 09:21:35.000000000 +0900
+--- /dev/null
++++ b/Modules/DateTimeFormat.cmake
 @@ -0,0 +1,37 @@
 +# - Date/time format module.
 +#
@@ -102,9 +99,8 @@ diff -Nru ibus-chewing-orig/Modules/DateTimeFormat.cmake ibus-chewing/Modules/Da
 +    TODAY(TODAY_SHORT "+%Y%m%d" "C")
 +ENDIF(NOT DEFINED _DATE_TIME_FORMAT_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageEnvironment.cmake ibus-chewing/Modules/ManageEnvironment.cmake
---- ibus-chewing-orig/Modules/ManageEnvironment.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageEnvironment.cmake	2011-09-20 10:56:54.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageEnvironment.cmake
 @@ -0,0 +1,185 @@
 +# - Manage build environment such as environment variables and compile flags.
 +# This module predefine various environment variables, cmake policies, and
@@ -291,9 +287,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageEnvironment.cmake ibus-chewing/Modules
 +	COMMENT "Create CMAKE_FEDORA_TMP_DIR"
 +	)
 +ENDIF(NOT DEFINED _MANAGE_ENVIRONMENT_CMAKE_)
-diff -Nru ibus-chewing-orig/Modules/ManageMaintainerTargets.cmake ibus-chewing/Modules/ManageMaintainerTargets.cmake
---- ibus-chewing-orig/Modules/ManageMaintainerTargets.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageMaintainerTargets.cmake	2011-09-20 11:28:42.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageMaintainerTargets.cmake
 @@ -0,0 +1,290 @@
 +# - Read setting files and provides developer only targets.
 +# This module has macros that generate variables such as
@@ -585,9 +580,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageMaintainerTargets.cmake ibus-chewing/M
 +
 +ENDIF(NOT DEFINED _MANAGE_MAINTAINER_TARGETS_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageMessage.cmake ibus-chewing/Modules/ManageMessage.cmake
---- ibus-chewing-orig/Modules/ManageMessage.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageMessage.cmake	2011-08-12 14:19:18.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageMessage.cmake
 @@ -0,0 +1,60 @@
 +# - Manage the output and debug messages.
 +# This module has macros that control how many messages to be shown
@@ -649,9 +643,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageMessage.cmake ibus-chewing/Modules/Man
 +    ENDMACRO(M_MSG level msg)
 +ENDIF(NOT DEFINED _MANAGE_MESSAGE_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageRelease.cmake ibus-chewing/Modules/ManageRelease.cmake
---- ibus-chewing-orig/Modules/ManageRelease.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageRelease.cmake	2011-09-16 16:53:17.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageRelease.cmake
 @@ -0,0 +1,95 @@
 +# - Common macros targets for release chores.
 +# This module provides common targets for release or post-release chores.
@@ -748,9 +741,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageRelease.cmake ibus-chewing/Modules/Man
 +
 +ENDIF(NOT DEFINED _MANAGE_RELEASE_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageReleaseOnFedora.cmake ibus-chewing/Modules/ManageReleaseOnFedora.cmake
---- ibus-chewing-orig/Modules/ManageReleaseOnFedora.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageReleaseOnFedora.cmake	2011-09-20 14:46:47.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageReleaseOnFedora.cmake
 @@ -0,0 +1,497 @@
 +# - Fedora release tasks related to koji, fedpkg and bodhi
 +#
@@ -1249,9 +1241,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageReleaseOnFedora.cmake ibus-chewing/Mod
 +
 +ENDIF(NOT DEFINED _MANAGE_RELEASE_ON_FEDORA_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageSourceVersionControl.cmake ibus-chewing/Modules/ManageSourceVersionControl.cmake
---- ibus-chewing-orig/Modules/ManageSourceVersionControl.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageSourceVersionControl.cmake	2011-08-04 12:40:13.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageSourceVersionControl.cmake
 @@ -0,0 +1,153 @@
 +# - Add source version control targets.
 +# Macros for build Git, Mercurial, SVN and CVS specific targets.
@@ -1406,9 +1397,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageSourceVersionControl.cmake ibus-chewin
 +
 +ENDIF(NOT DEFINED _MANAGE_SOURCE_VERSION_CONTROL_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageString.cmake ibus-chewing/Modules/ManageString.cmake
---- ibus-chewing-orig/Modules/ManageString.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageString.cmake	2011-09-02 09:03:24.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageString.cmake
 @@ -0,0 +1,307 @@
 +# - Collection of String utility macros.
 +#
@@ -1717,9 +1707,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageString.cmake ibus-chewing/Modules/Mana
 +
 +ENDIF(NOT DEFINED _MANAGE_STRING_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageTranslation.cmake ibus-chewing/Modules/ManageTranslation.cmake
---- ibus-chewing-orig/Modules/ManageTranslation.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageTranslation.cmake	2011-09-20 14:16:28.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageTranslation.cmake
 @@ -0,0 +1,365 @@
 +# - Software Translation support
 +# This module supports software translation by:
@@ -2086,9 +2075,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageTranslation.cmake ibus-chewing/Modules
 +
 +ENDIF(NOT DEFINED _MANAGE_TRANSLATION_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageUninstall.cmake ibus-chewing/Modules/ManageUninstall.cmake
---- ibus-chewing-orig/Modules/ManageUninstall.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageUninstall.cmake	2011-09-20 11:09:39.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageUninstall.cmake
 @@ -0,0 +1,28 @@
 +# - Uninstall target.
 +# Use this module to provide uninstall target.
@@ -2118,9 +2106,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageUninstall.cmake ibus-chewing/Modules/M
 +	)
 +ENDIF(NOT DEFINED _MANAGE_UNINSTALL_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageVariable.cmake ibus-chewing/Modules/ManageVariable.cmake
---- ibus-chewing-orig/Modules/ManageVariable.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageVariable.cmake	2011-08-26 11:08:53.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageVariable.cmake
 @@ -0,0 +1,277 @@
 +# - Get or set variables from various sources.
 +#
@@ -2399,9 +2386,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageVariable.cmake ibus-chewing/Modules/Ma
 +
 +ENDIF(NOT DEFINED _MANAGE_VARIABLE_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/ManageVersion.cmake ibus-chewing/Modules/ManageVersion.cmake
---- ibus-chewing-orig/Modules/ManageVersion.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/ManageVersion.cmake	2011-09-20 09:05:47.000000000 +0900
+--- /dev/null
++++ b/Modules/ManageVersion.cmake
 @@ -0,0 +1,115 @@
 +# - Targets and macros that related to versioning.
 +#
@@ -2518,9 +2504,8 @@ diff -Nru ibus-chewing-orig/Modules/ManageVersion.cmake ibus-chewing/Modules/Man
 +
 +ENDIF(NOT DEFINED _MANAGE_VERSION_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/PackRPM.cmake ibus-chewing/Modules/PackRPM.cmake
---- ibus-chewing-orig/Modules/PackRPM.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/PackRPM.cmake	2011-07-01 14:20:21.000000000 +0900
+--- /dev/null
++++ b/Modules/PackRPM.cmake
 @@ -0,0 +1,313 @@
 +# - RPM generation, maintaining (remove old rpm) and verification (rpmlint).
 +# This module provides macros that provides various rpm building and
@@ -2835,9 +2820,8 @@ diff -Nru ibus-chewing-orig/Modules/PackRPM.cmake ibus-chewing/Modules/PackRPM.c
 +
 +ENDIF(NOT DEFINED _PACK_RPM_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/PackSource.cmake ibus-chewing/Modules/PackSource.cmake
---- ibus-chewing-orig/Modules/PackSource.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/PackSource.cmake	2011-07-01 12:13:21.000000000 +0900
+--- /dev/null
++++ b/Modules/PackSource.cmake
 @@ -0,0 +1,191 @@
 +# - Pack source helper module
 +# By default CPack pack everything under the source directory, this is usually
@@ -3030,9 +3014,8 @@ diff -Nru ibus-chewing-orig/Modules/PackSource.cmake ibus-chewing/Modules/PackSo
 +
 +ENDIF(NOT DEFINED _PACK_SOURCE_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/UseDoxygen.cmake ibus-chewing/Modules/UseDoxygen.cmake
---- ibus-chewing-orig/Modules/UseDoxygen.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/UseDoxygen.cmake	2011-04-14 14:52:47.000000000 +0900
+--- /dev/null
++++ b/Modules/UseDoxygen.cmake
 @@ -0,0 +1,33 @@
 +# - Generate Doxyfile
 +# This module is for doxygen generation.
@@ -3067,9 +3050,8 @@ diff -Nru ibus-chewing-orig/Modules/UseDoxygen.cmake ibus-chewing/Modules/UseDox
 +    ENDMACRO(USE_DOXYGEN doxygen_template)
 +ENDIF(NOT DEFINED _USE_DOXYGEN_CMAKE_)
 +
-diff -Nru ibus-chewing-orig/Modules/UseGConf.cmake ibus-chewing/Modules/UseGConf.cmake
---- ibus-chewing-orig/Modules/UseGConf.cmake	1970-01-01 09:00:00.000000000 +0900
-+++ ibus-chewing/Modules/UseGConf.cmake	2011-04-14 14:52:47.000000000 +0900
+--- /dev/null
++++ b/Modules/UseGConf.cmake
 @@ -0,0 +1,63 @@
 +# - GConf relative targets such as install/unstall schemas.
 +# This module finds gconftool-2 or gconftool for GConf manipulation.

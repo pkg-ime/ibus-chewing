@@ -1,0 +1,37 @@
+From: Daiki Ueno <ueno@unixuser.org>
+Date: Sun, 04 Mar 2012 18:13:45 +0900
+Description: Follow IBusProperty ABI change.
+--- a/src/IBusChewingEngine-input-events.c
++++ b/src/IBusChewingEngine-input-events.c
+@@ -291,12 +291,12 @@
+ 	/* Toggle Full <-> Half */
+ 	chewing_set_ShapeMode(self->context, !chewing_get_ShapeMode(self->context));
+     }else if (strcmp(prop_name,"chewing_settings_prop")==0){
+-	if (self->settings_prop->state==PROP_STATE_UNCHECKED){
++	if (ibus_property_get_state(self->settings_prop)==PROP_STATE_UNCHECKED){
+ 	    if (gtk_dialog_run(GTK_DIALOG(self->setting_dialog))==GTK_RESPONSE_OK){
+ 		self_save_config_all(self);
+ 	    }
+ 	    gtk_widget_hide(self->setting_dialog);
+-	    self->settings_prop->state=PROP_STATE_UNCHECKED;
++	    ibus_property_set_state(self->settings_prop, PROP_STATE_UNCHECKED);
+ 	}
+     }else{
+ 	G_DEBUG_MSG(3,"[I3]  property_activate(-, %s, %u) not recognized",prop_name, prop_state);
+--- a/src/IBusChewingEngine.gob
++++ b/src/IBusChewingEngine.gob
+@@ -1041,12 +1041,12 @@
+ 	    /* Toggle Full <-> Half */
+ 	    chewing_set_ShapeMode(self->context, !chewing_get_ShapeMode(self->context));
+ 	}else if (strcmp(prop_name,"chewing_settings_prop")==0){
+-	    if (self->settings_prop->state==PROP_STATE_UNCHECKED){
++	    if (ibus_property_get_state(self->settings_prop)==PROP_STATE_UNCHECKED){
+ 		if (gtk_dialog_run(GTK_DIALOG(self->setting_dialog))==GTK_RESPONSE_OK){
+ 		    self_save_config_all(self);
+ 		}
+ 		gtk_widget_hide(self->setting_dialog);
+-		self->settings_prop->state=PROP_STATE_UNCHECKED;
++		ibus_property_set_state(self->settings_prop, PROP_STATE_UNCHECKED);
+ 	    }
+ 	}else{
+ 	    G_DEBUG_MSG(3,"[I3]  property_activate(-, %s, %u) not recognized",prop_name, prop_state);
